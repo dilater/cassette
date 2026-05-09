@@ -4,6 +4,7 @@ mod library;
 mod metadata;
 mod torrents;
 mod disc;
+mod trakt;
 
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
@@ -305,6 +306,16 @@ pub fn run() {
             commands::disc_cancel_archive,
             commands::disc_retry,
             commands::disc_start_archive,
+            commands::get_trakt_credentials,
+            commands::set_trakt_credentials,
+            commands::trakt_get_status,
+            commands::trakt_disconnect,
+            commands::trakt_start_device_auth,
+            commands::trakt_sync_now,
+            commands::trakt_finish_watching,
+            commands::trakt_push_rating,
+            commands::letterboxd_export,
+            commands::open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

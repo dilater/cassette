@@ -132,3 +132,21 @@ export const discCancelArchive = () => invoke<void>("disc_cancel_archive");
 export const discRetry = () => invoke<void>("disc_retry");
 export const discStartArchive = (drive: string, outputPath: string) =>
   invoke<void>("disc_start_archive", { drive, outputPath });
+
+// Trakt + Letterboxd
+export const getTraktCredentials = () =>
+  invoke<{ client_id: string; client_secret: string }>("get_trakt_credentials");
+export const setTraktCredentials = (clientId: string, clientSecret: string) =>
+  invoke<void>("set_trakt_credentials", { clientId, clientSecret });
+export const traktGetStatus = () =>
+  invoke<{ connected: boolean; username?: string; last_synced?: number }>("trakt_get_status");
+export const traktDisconnect = () => invoke<void>("trakt_disconnect");
+export const traktStartDeviceAuth = () =>
+  invoke<{ user_code: string; verification_url: string; expires_in: number }>("trakt_start_device_auth");
+export const traktSyncNow = () => invoke<number>("trakt_sync_now");
+export const traktFinishWatching = (fileId: number, positionSeconds: number, durationSeconds: number) =>
+  invoke<void>("trakt_finish_watching", { fileId, positionSeconds, durationSeconds });
+export const traktPushRating = (fileId: number, rating: number) =>
+  invoke<void>("trakt_push_rating", { fileId, rating });
+export const letterboxdExport = () => invoke<string>("letterboxd_export");
+export const openUrl = (url: string) => invoke<void>("open_url", { url });

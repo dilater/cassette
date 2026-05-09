@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { getCurrentWindow, PhysicalSize, PhysicalPosition } from "@tauri-apps/api/window";
-import { playFile, stop, getWindowState, saveWindowState, getCliFile, setVideoVisible, forceVideoResize } from "./lib/tauri";
+import { playFile, stop, getWindowState, saveWindowState, getCliFile, setVideoVisible, forceVideoResize, listWatchedFolders } from "./lib/tauri";
 import type { LibraryItem } from "./types/library";
 import LibraryView from "./views/LibraryView";
 import PlayerView from "./views/PlayerView";
+import OnboardingView from "./views/OnboardingView";
 
-type View = "library" | "player";
+type View = "library" | "player" | "onboarding";
 
 const appWindow = getCurrentWindow();
 
@@ -25,6 +26,13 @@ export default function App() {
         await appWindow.setPosition(new PhysicalPosition(x, y));
       }
       await appWindow.show();
+
+      // First-run detection: no watched folders = show onboarding
+      const folders = await listWatchedFolders().catch(() => []);
+      if (folders.length === 0) {
+        setView("onboarding");
+        return;
+      }
 
       // If the app was opened by double-clicking a media file
       const cliFile = await getCliFile();
@@ -93,14 +101,16 @@ export default function App() {
 
   return (
     <div className="app">
-      {view === "library" || currentItem == null ? (
-        <LibraryView onPlay={handlePlay} />
-      ) : (
+      {view === "onboarding" ? (
+        <OnboardingView onComplete={() => setView("library")} />
+      ) : view === "player" && currentItem != null ? (
         <PlayerView
           currentItem={currentItem}
           onBack={handleBack}
           onPlayItem={handlePlay}
         />
+      ) : (
+        <LibraryView onPlay={handlePlay} />
       )}
     </div>
   );

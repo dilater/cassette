@@ -13,6 +13,7 @@ import WatchedFolders from "../components/library/WatchedFolders";
 import MetadataEditor from "../components/library/MetadataEditor";
 import DownloadsView from "../components/library/DownloadsView";
 import ArchivingView from "./ArchivingView";
+import SettingsView from "./SettingsView";
 import EmptyState from "./EmptyState";
 import WindowControls from "../components/WindowControls";
 
@@ -223,6 +224,14 @@ export default function LibraryView({ onPlay }: Props) {
         >
           <RefreshIcon />
         </button>
+        <button
+          className={`library-settings-btn${filter === "settings" ? " active" : ""}`}
+          onClick={() => setFilter(filter === "settings" ? "all" : "settings")}
+          data-tauri-no-drag
+          aria-label="Settings"
+        >
+          <GearIcon />
+        </button>
         <WindowControls />
       </div>
 
@@ -243,6 +252,10 @@ export default function LibraryView({ onPlay }: Props) {
           onPlay={(item) => { setSelectedGroup(null); onPlay(item); }}
           onBack={() => setSelectedGroup(null)}
         />
+      ) : filter === "settings" ? (
+        <div className="library-body">
+          <SettingsView />
+        </div>
       ) : filter === "archiving" ? (
         <div className="library-body">
           <ArchivingView />
@@ -259,22 +272,36 @@ export default function LibraryView({ onPlay }: Props) {
         <EmptyState onFolderAdded={loadData} />
       ) : (
         <div className="library-body">
-          <ContinueWatching items={continueWatching} onPlay={onPlay} />
-          <PosterGrid
-            groups={folderGroups}
-            onPlay={onPlay}
-            onOpenGroup={setSelectedGroup}
-            onEdit={setEditingGroup}
-            onChanged={loadData}
-          />
-          {needsReview.length > 0 && (
-            <NeedsReviewSection items={needsReview} onTagged={() => { loadData(); fetchMetadataAll().catch(() => {}); }} />
+          {search.trim() && folderGroups.length === 0 ? (
+            <div className="empty-state empty-state--inline">
+              <div className="empty-state-heading">Nothing found for &ldquo;{search}&rdquo;</div>
+              <div className="empty-state-sub">Try a different title or filename.</div>
+            </div>
+          ) : !scanning && items.length === 0 ? (
+            <div className="empty-state empty-state--inline">
+              <div className="empty-state-heading">No media found</div>
+              <div className="empty-state-sub">Cassette scanned your folders but found no supported files.</div>
+            </div>
+          ) : (
+            <>
+              <ContinueWatching items={continueWatching} onPlay={onPlay} />
+              <PosterGrid
+                groups={folderGroups}
+                onPlay={onPlay}
+                onOpenGroup={setSelectedGroup}
+                onEdit={setEditingGroup}
+                onChanged={loadData}
+              />
+              {needsReview.length > 0 && (
+                <NeedsReviewSection items={needsReview} onTagged={() => { loadData(); fetchMetadataAll().catch(() => {}); }} />
+              )}
+              <WatchedFolders
+                folders={folders}
+                allItems={items}
+                onFolderAdded={loadData}
+              />
+            </>
           )}
-          <WatchedFolders
-            folders={folders}
-            allItems={items}
-            onFolderAdded={loadData}
-          />
         </div>
       )}
       {editingGroup && (
@@ -476,6 +503,15 @@ function RefreshIcon() {
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M13.5 8a5.5 5.5 0 1 1-1.1-3.3" />
       <path d="M13.5 2.5v3h-3" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="2.5" />
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" />
     </svg>
   );
 }

@@ -594,6 +594,49 @@ pub fn update_duration(conn: &Connection, file_id: i64, duration_seconds: i64) -
     Ok(())
 }
 
+pub fn get_file_by_id(conn: &Connection, file_id: i64) -> Result<Option<LibraryItem>> {
+    let sql = format!("{ITEM_SELECT} WHERE f.id = ?1");
+    let mut stmt = conn.prepare(&sql)?;
+    let mut rows = stmt.query(params![file_id])?;
+    rows.next()?.map(|row| map_library_item(row)).transpose()
+}
+
+pub struct LetterboxdRow {
+    pub title: String,
+    pub year: Option<i64>,
+    pub watched_at: Option<i64>,
+    pub rating: Option<i64>,
+}
+
+pub fn get_watched_items_for_export(conn: &Connection) -> Result<Vec<LetterboxdRow>> {
+    let mut stmt = conn.prepare(
+        "SELECT COALESCE(f.parsed_title, f.filename), f.parsed_year, f.watched_at, f.user_rating
+         FROM files f
+         WHERE f.watch_status = 'watched' AND f.parsed_season IS NULL
+         ORDER BY f.watched_at DESC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(LetterboxdRow {
+            title: row.get(0)?,
+            year: row.get(1)?,
+            watched_at: row.get(2)?,
+            rating: row.get(3)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn get_watched_films_for_trakt(conn: &Connection) -> Result<Vec<LibraryItem>> {
+    let sql = format!(
+        "{ITEM_SELECT}
+         WHERE f.watch_status = 'watched' AND f.parsed_season IS NULL
+         ORDER BY f.watched_at DESC"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map([], |row| map_library_item(row))?;
+    rows.collect()
+}
+
 pub struct FileRow {
     pub path: String,
     pub filename: String,

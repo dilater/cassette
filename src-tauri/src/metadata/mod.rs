@@ -13,6 +13,8 @@ pub struct AppSettings {
     pub window_y: Option<i32>,
     pub download_folder: Option<String>,
     pub subtitle_font: Option<String>,
+    pub trakt_client_id: Option<String>,
+    pub trakt_client_secret: Option<String>,
 }
 
 pub fn load_settings(data_dir: &Path) -> AppSettings {

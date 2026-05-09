@@ -44,7 +44,7 @@ export interface TrackInfo {
 
 export type VisualProfile = "film" | "anime" | "low-power" | "none";
 
-export type LibraryFilter = "all" | "film" | "tv" | "collection" | "downloads" | "archiving";
+export type LibraryFilter = "all" | "film" | "tv" | "collection" | "downloads" | "archiving" | "settings";
 
 export type DiscState =
   | { kind: "waiting" }

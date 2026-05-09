@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { togglePause, seekRelative, seek, playFile, getTrackList, updateProgress, getSeriesTrackPref, setSeriesTrackPref, initScrubThumbs, getNextEpisode, getPrevEpisode, getSeasonEpisodeCount, applyVisualProfile, getGlobalProfile, getSeriesProfile, setSeriesProfile, setGlobalProfile, volumeUp, volumeDown, toggleMute, speedUp, speedDown, frameStep, frameBackStep, forceVideoResize } from "../lib/tauri";
+import { togglePause, seekRelative, seek, playFile, getTrackList, updateProgress, getSeriesTrackPref, setSeriesTrackPref, initScrubThumbs, getNextEpisode, getPrevEpisode, getSeasonEpisodeCount, applyVisualProfile, getGlobalProfile, getSeriesProfile, setSeriesProfile, setGlobalProfile, volumeUp, volumeDown, toggleMute, speedUp, speedDown, frameStep, frameBackStep, forceVideoResize, traktFinishWatching } from "../lib/tauri";
 import { useAutoHide } from "../hooks/useAutoHide";
 import type { LibraryItem, TrackInfo, VisualProfile } from "../types/library";
 import ProfileChip from "../components/player/ProfileChip";
@@ -95,6 +95,20 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
       }
     };
   }, [currentItem.id]);
+
+  // Scrobble to Trakt when within 2 minutes of the end (fire once per file)
+  const scrobbledRef = useRef(false);
+  useEffect(() => {
+    scrobbledRef.current = false;
+  }, [currentItem.id]);
+  useEffect(() => {
+    const { position_seconds: pos, duration_seconds: dur, paused } = state;
+    if (paused || dur <= 0 || scrobbledRef.current) return;
+    if (pos >= dur - 120 && dur > 180) {
+      scrobbledRef.current = true;
+      traktFinishWatching(currentItem.id, pos, dur).catch(() => {});
+    }
+  }, [state.position_seconds, currentItem.id]);
 
   // Require duration to pass through 0 before accepting > 0 as "file loaded".
   // Prevents stale mpv events from the previous file clearing the cover early.

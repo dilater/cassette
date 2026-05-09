@@ -5,6 +5,7 @@ use crate::library::{SharedDb, db, scanner};
 use crate::library::db::LibraryItem;
 use crate::metadata;
 use crate::disc::{SharedDiscState, DiscCancelFlag, DiscState};
+use crate::trakt;
 use std::collections::HashSet;
 use std::sync::atomic::Ordering;
 
@@ -1056,6 +1057,239 @@ pub async fn disc_start_archive(
     Ok(())
 }
 
+// ── trakt + letterboxd ───────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn get_trakt_credentials(app: tauri::AppHandle) -> serde_json::Value {
+    let data_dir = app.path().app_data_dir().ok();
+    let settings = data_dir.map(|d| metadata::load_settings(&d)).unwrap_or_default();
+    serde_json::json!({
+        "client_id": settings.trakt_client_id.unwrap_or_default(),
+        "client_secret": settings.trakt_client_secret.unwrap_or_default()
+    })
+}
+
+#[tauri::command]
+pub fn set_trakt_credentials(
+    client_id: String,
+    client_secret: String,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let mut settings = metadata::load_settings(&data_dir);
+    settings.trakt_client_id = if client_id.is_empty() { None } else { Some(client_id) };
+    settings.trakt_client_secret = if client_secret.is_empty() { None } else { Some(client_secret) };
+    metadata::save_settings(&data_dir, &settings);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn trakt_get_status(app: tauri::AppHandle) -> serde_json::Value {
+    let data_dir = app.path().app_data_dir().ok();
+    let tokens = data_dir.as_deref().and_then(trakt::load_tokens);
+    match tokens {
+        Some(t) => serde_json::json!({
+            "connected": true,
+            "username": t.username,
+            "last_synced": t.last_synced
+        }),
+        None => serde_json::json!({ "connected": false }),
+    }
+}
+
+#[tauri::command]
+pub fn trakt_disconnect(app: tauri::AppHandle) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::remove_file(data_dir.join("trakt.json")).ok();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn trakt_start_device_auth(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let settings = metadata::load_settings(&data_dir);
+    let client_id = settings
+        .trakt_client_id
+        .filter(|s| !s.is_empty())
+        .ok_or("Trakt client ID not configured")?;
+    let client_secret = settings
+        .trakt_client_secret
+        .filter(|s| !s.is_empty())
+        .ok_or("Trakt client secret not configured")?;
+
+    let device = trakt::start_device_auth(&client_id).await?;
+
+    let device_code = device.device_code.clone();
+    let interval = device.interval.max(5);
+    let expires_in = device.expires_in;
+
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let max_polls = (expires_in / interval) + 1;
+        for _ in 0..max_polls {
+            tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
+            match trakt::poll_device_auth(&device_code, &client_id, &client_secret).await {
+                Ok(Some(tokens)) => {
+                    let username = tokens.username.clone().unwrap_or_default();
+                    if let Ok(dir) = app_handle.path().app_data_dir() {
+                        trakt::save_tokens(&dir, &tokens).ok();
+                    }
+                    app_handle
+                        .emit("trakt:auth-complete", serde_json::json!({ "username": username }))
+                        .ok();
+                    return;
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    app_handle
+                        .emit("trakt:auth-failed", serde_json::json!({ "reason": e }))
+                        .ok();
+                    return;
+                }
+            }
+        }
+        app_handle
+            .emit("trakt:auth-failed", serde_json::json!({ "reason": "timed out" }))
+            .ok();
+    });
+
+    Ok(serde_json::json!({
+        "user_code": device.user_code,
+        "verification_url": device.verification_url,
+        "expires_in": expires_in
+    }))
+}
+
+#[tauri::command]
+pub async fn trakt_sync_now(
+    shared_db: State<'_, SharedDb>,
+    app: tauri::AppHandle,
+) -> Result<u32, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let settings = metadata::load_settings(&data_dir);
+    let client_id = settings
+        .trakt_client_id
+        .filter(|s| !s.is_empty())
+        .ok_or("Trakt client ID not configured")?;
+    let mut tokens = trakt::load_tokens(&data_dir).ok_or("Not connected to Trakt")?;
+
+    let watched = {
+        let conn = shared_db.lock().map_err(|e| e.to_string())?;
+        db::get_watched_films_for_trakt(&conn).map_err(|e| e.to_string())?
+    };
+
+    let items: Vec<trakt::WatchedItem> = watched
+        .into_iter()
+        .map(|item| trakt::WatchedItem {
+            title: item.parsed_title.unwrap_or(item.filename),
+            year: item.parsed_year,
+            watched_at_ts: item.watched_at,
+        })
+        .collect();
+
+    let count = trakt::sync_watch_history(&tokens.access_token, &client_id, items).await?;
+
+    tokens.last_synced = Some(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0),
+    );
+    trakt::save_tokens(&data_dir, &tokens).map_err(|e| e.to_string())?;
+
+    Ok(count)
+}
+
+#[tauri::command]
+pub async fn trakt_finish_watching(
+    file_id: i64,
+    position_seconds: f64,
+    duration_seconds: f64,
+    shared_db: State<'_, SharedDb>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let settings = metadata::load_settings(&data_dir);
+    let client_id = match settings.trakt_client_id.filter(|s| !s.is_empty()) {
+        Some(id) => id,
+        None => return Ok(()),
+    };
+    let tokens = match trakt::load_tokens(&data_dir) {
+        Some(t) => t,
+        None => return Ok(()),
+    };
+
+    let item = {
+        let conn = shared_db.lock().map_err(|e| e.to_string())?;
+        db::get_file_by_id(&conn, file_id).map_err(|e| e.to_string())?
+    };
+    let Some(item) = item else { return Ok(()); };
+
+    let progress_pct = if duration_seconds > 0.0 {
+        (position_seconds / duration_seconds * 100.0).clamp(0.0, 100.0)
+    } else {
+        80.0
+    };
+
+    trakt::scrobble_stop(&tokens.access_token, &client_id, &item, progress_pct)
+        .await
+        .unwrap_or_else(|e| eprintln!("trakt scrobble: {e}"));
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn trakt_push_rating(
+    file_id: i64,
+    rating: i64,
+    shared_db: State<'_, SharedDb>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let settings = metadata::load_settings(&data_dir);
+    let client_id = match settings.trakt_client_id.filter(|s| !s.is_empty()) {
+        Some(id) => id,
+        None => return Ok(()),
+    };
+    let tokens = match trakt::load_tokens(&data_dir) {
+        Some(t) => t,
+        None => return Ok(()),
+    };
+    let item = {
+        let conn = shared_db.lock().map_err(|e| e.to_string())?;
+        db::get_file_by_id(&conn, file_id).map_err(|e| e.to_string())?
+    };
+    let Some(item) = item else { return Ok(()); };
+    trakt::push_rating(&tokens.access_token, &client_id, &item, rating).await
+}
+
+#[tauri::command]
+pub fn letterboxd_export(
+    shared_db: State<'_, SharedDb>,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    let rows = {
+        let conn = shared_db.lock().map_err(|e| e.to_string())?;
+        db::get_watched_items_for_export(&conn).map_err(|e| e.to_string())?
+    };
+
+    let mut csv = "Title,Year,WatchedDate,Rating10\n".to_string();
+    for row in &rows {
+        let watched_date = row
+            .watched_at
+            .map(trakt::unix_to_date)
+            .unwrap_or_default();
+        let title = row.title.replace('"', "\"\"");
+        let year = row.year.map(|y| y.to_string()).unwrap_or_default();
+        let rating = row.rating.map(|r| r.to_string()).unwrap_or_default();
+        csv.push_str(&format!("\"{title}\",{year},{watched_date},{rating}\n"));
+    }
+
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let out_path = data_dir.join("letterboxd_export.csv");
+    std::fs::write(&out_path, csv).map_err(|e| e.to_string())?;
+    Ok(out_path.to_string_lossy().to_string())
+}
+
 #[tauri::command]
 pub async fn scan_film_durations(app: tauri::AppHandle, db: State<'_, SharedDb>) -> Result<u32, String> {
     let ffprobe = find_ffprobe(&app);
@@ -1086,4 +1320,13 @@ pub async fn scan_film_durations(app: tauri::AppHandle, db: State<'_, SharedDb>)
         }
     }
     Ok(updated)
+}
+
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
