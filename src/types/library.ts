@@ -44,7 +44,14 @@ export interface TrackInfo {
 
 export type VisualProfile = "film" | "anime" | "low-power" | "none";
 
-export type LibraryFilter = "all" | "film" | "tv" | "collection" | "downloads";
+export type LibraryFilter = "all" | "film" | "tv" | "collection" | "downloads" | "archiving";
+
+export type DiscState =
+  | { kind: "waiting" }
+  | { kind: "detected"; drive: string; label: string; size_bytes: number }
+  | { kind: "archiving"; drive: string; label: string; bytes_read: number; bytes_total: number; speed_mbps: number; eta_seconds: number; output_path: string }
+  | { kind: "complete"; label: string; iso_path: string }
+  | { kind: "error"; label: string; message: string; drive: string };
 
 export type TorrentState = "downloading" | "paused" | "complete" | "error";
 

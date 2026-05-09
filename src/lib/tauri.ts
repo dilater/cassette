@@ -123,3 +123,12 @@ export const torrentRemove = (id: number, deleteFiles: boolean) =>
 export const torrentList = () => invoke<TorrentInfo[]>("torrent_list");
 export const torrentGetFilePath = (id: number, fileIndex: number) =>
   invoke<string | null>("torrent_get_file_path", { id, fileIndex });
+
+// Disc archiving
+import type { DiscState } from "../types/library";
+export const discGetState = () => invoke<DiscState>("disc_get_state");
+export const discDismiss = () => invoke<void>("disc_dismiss");
+export const discCancelArchive = () => invoke<void>("disc_cancel_archive");
+export const discRetry = () => invoke<void>("disc_retry");
+export const discStartArchive = (drive: string, outputPath: string) =>
+  invoke<void>("disc_start_archive", { drive, outputPath });

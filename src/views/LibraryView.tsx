@@ -12,6 +12,7 @@ import SeriesView from "../components/library/SeriesView";
 import WatchedFolders from "../components/library/WatchedFolders";
 import MetadataEditor from "../components/library/MetadataEditor";
 import DownloadsView from "../components/library/DownloadsView";
+import ArchivingView from "./ArchivingView";
 import EmptyState from "./EmptyState";
 import WindowControls from "../components/WindowControls";
 
@@ -242,6 +243,10 @@ export default function LibraryView({ onPlay }: Props) {
           onPlay={(item) => { setSelectedGroup(null); onPlay(item); }}
           onBack={() => setSelectedGroup(null)}
         />
+      ) : filter === "archiving" ? (
+        <div className="library-body">
+          <ArchivingView />
+        </div>
       ) : filter === "downloads" ? (
         <div className="library-body">
           <DownloadsView onPlay={(path) => onPlay(makeLibraryItemFromPath(path))} />

@@ -3,8 +3,10 @@ mod mpv;
 mod library;
 mod metadata;
 mod torrents;
+mod disc;
 
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicBool;
 use libmpv2::Mpv;
 use mpv::{MpvWrapper, SharedMpv};
 use library::SharedDb;
@@ -187,6 +189,46 @@ pub fn run() {
                 }
             });
 
+            // ── disc archiving ────────────────────────────────────────────────
+            let disc_state: disc::SharedDiscState =
+                Arc::new(Mutex::new(disc::DiscState::Waiting));
+            let disc_cancel = disc::DiscCancelFlag(Arc::new(AtomicBool::new(false)));
+
+            // Poll every 3 s for disc insertion / ejection
+            let poll_state = Arc::clone(&disc_state);
+            let poll_app = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    let current = poll_state.lock().unwrap().clone();
+                    match current {
+                        disc::DiscState::Waiting => {
+                            let discs = disc::detector::scan_optical_drives();
+                            if let Some(d) = discs.first() {
+                                let new = disc::DiscState::Detected {
+                                    drive: d.drive.clone(),
+                                    label: d.label.clone(),
+                                    size_bytes: d.size_bytes,
+                                };
+                                *poll_state.lock().unwrap() = new.clone();
+                                poll_app.emit("disc:state-changed", new).ok();
+                            }
+                        }
+                        disc::DiscState::Detected { ref drive, .. } => {
+                            let drive = drive.clone();
+                            let discs = disc::detector::scan_optical_drives();
+                            if discs.iter().all(|d| d.drive != drive) {
+                                *poll_state.lock().unwrap() = disc::DiscState::Waiting;
+                                poll_app.emit("disc:state-changed", disc::DiscState::Waiting).ok();
+                            }
+                        }
+                        _ => {} // Archiving / Complete / Error: don't auto-transition
+                    }
+                }
+            });
+
+            app.manage(disc_state);
+            app.manage(disc_cancel);
 
             Ok(())
         })
@@ -258,6 +300,11 @@ pub fn run() {
             commands::torrent_list,
             commands::torrent_get_file_path,
             commands::scan_film_durations,
+            commands::disc_get_state,
+            commands::disc_dismiss,
+            commands::disc_cancel_archive,
+            commands::disc_retry,
+            commands::disc_start_archive,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,7 +4,9 @@ use crate::mpv::controller::{self, TrackInfo};
 use crate::library::{SharedDb, db, scanner};
 use crate::library::db::LibraryItem;
 use crate::metadata;
+use crate::disc::{SharedDiscState, DiscCancelFlag, DiscState};
 use std::collections::HashSet;
+use std::sync::atomic::Ordering;
 
 fn find_ffmpeg(app: &tauri::AppHandle) -> String {
     // Prefer the bundled binary in resources/, fall back to PATH.
@@ -911,6 +913,147 @@ pub async fn torrent_get_file_path(
     let guard = session.0.read().await;
     let sess = guard.as_ref().ok_or("torrent session not started")?;
     Ok(crate::torrents::manager::get_file_path(sess, id as usize, file_index))
+}
+
+#[tauri::command]
+// ── disc archiving ────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn disc_get_state(state: State<'_, SharedDiscState>) -> DiscState {
+    state.lock().unwrap().clone()
+}
+
+#[tauri::command]
+pub fn disc_dismiss(state: State<'_, SharedDiscState>) {
+    *state.lock().unwrap() = DiscState::Waiting;
+}
+
+#[tauri::command]
+pub fn disc_cancel_archive(cancel: State<'_, DiscCancelFlag>) {
+    cancel.0.store(true, Ordering::Relaxed);
+}
+
+#[tauri::command]
+pub async fn disc_retry(
+    state: State<'_, SharedDiscState>,
+) -> Result<(), String> {
+    let drive = {
+        let s = state.lock().unwrap();
+        match &*s {
+            DiscState::Error { drive, .. } => drive.clone(),
+            _ => return Err("Not in error state".to_string()),
+        }
+    };
+    // Re-detect disc at same drive
+    let discs = crate::disc::detector::scan_optical_drives();
+    if let Some(disc) = discs.iter().find(|d| d.drive == drive) {
+        *state.lock().unwrap() = DiscState::Detected {
+            drive: disc.drive.clone(),
+            label: disc.label.clone(),
+            size_bytes: disc.size_bytes,
+        };
+        Ok(())
+    } else {
+        *state.lock().unwrap() = DiscState::Waiting;
+        Err("Disc no longer detected".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn disc_start_archive(
+    drive: String,
+    output_path: String,
+    app: tauri::AppHandle,
+    state: State<'_, SharedDiscState>,
+    cancel: State<'_, DiscCancelFlag>,
+) -> Result<(), String> {
+    let (label, size_bytes) = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        match &*s {
+            DiscState::Detected { label, size_bytes, .. } => (label.clone(), *size_bytes),
+            _ => return Err("No disc in detected state".to_string()),
+        }
+    };
+
+    // Fresh cancel flag for this run
+    cancel.0.store(false, Ordering::SeqCst);
+    let cancel_arc = cancel.0.clone();
+    let state_arc = state.inner().clone();
+
+    // Transition to Archiving immediately so the UI updates
+    {
+        let mut s = state_arc.lock().unwrap();
+        *s = DiscState::Archiving {
+            drive: drive.clone(),
+            label: label.clone(),
+            bytes_read: 0,
+            bytes_total: size_bytes,
+            speed_mbps: 0.0,
+            eta_seconds: 0,
+            output_path: output_path.clone(),
+        };
+        app.emit("disc:state-changed", s.clone()).ok();
+    }
+
+    let app_clone = app.clone();
+    let drive_clone = drive.clone();
+    let label_clone = label.clone();
+    let output_path_clone = output_path.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let on_progress = {
+            let state = state_arc.clone();
+            let app = app_clone.clone();
+            let drive = drive_clone.clone();
+            let label = label_clone.clone();
+            let out = output_path_clone.clone();
+            move |bytes_read: u64, bytes_total: u64, speed_mbps: f32, eta_seconds: u64| {
+                let mut s = state.lock().unwrap();
+                *s = DiscState::Archiving {
+                    drive: drive.clone(),
+                    label: label.clone(),
+                    bytes_read,
+                    bytes_total,
+                    speed_mbps,
+                    eta_seconds,
+                    output_path: out.clone(),
+                };
+                app.emit("disc:state-changed", s.clone()).ok();
+            }
+        };
+
+        let result = crate::disc::archiver::archive_disc(
+            drive_clone.clone(),
+            output_path_clone.clone(),
+            size_bytes,
+            cancel_arc,
+            on_progress,
+        )
+        .await;
+
+        let mut s = state_arc.lock().unwrap();
+        match result {
+            Ok(()) => {
+                *s = DiscState::Complete {
+                    label: label_clone,
+                    iso_path: output_path_clone,
+                };
+            }
+            Err(ref e) if e == "Cancelled" => {
+                *s = DiscState::Waiting;
+            }
+            Err(e) => {
+                *s = DiscState::Error {
+                    label: label_clone,
+                    message: e,
+                    drive: drive_clone,
+                };
+            }
+        }
+        app_clone.emit("disc:state-changed", s.clone()).ok();
+    });
+
+    Ok(())
 }
 
 #[tauri::command]

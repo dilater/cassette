@@ -12,6 +12,7 @@ const CHIPS: { label: string; value: LibraryFilter }[] = [
   { label: "TV", value: "tv" },
   { label: "Collection", value: "collection" },
   { label: "Downloads", value: "downloads" },
+  { label: "Archiving", value: "archiving" },
 ];
 
 export default function FilterChips({ active, onChange }: Props) {

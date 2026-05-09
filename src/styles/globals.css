@@ -2435,3 +2435,202 @@ input {
   color: #e05a5a;
   padding: 4px 14px 8px;
 }
+
+/* ── archiving view ──────────────────────────────────────────────────────────── */
+
+.archiving-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 360px;
+  gap: 16px;
+  user-select: none;
+}
+
+.archiving-glyph {
+  width: 96px;
+  height: 64px;
+  color: rgba(245, 245, 243, 0.08);
+}
+
+.archiving-waiting-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.archiving-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 0.5px solid var(--border-frame);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin: 0 auto;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.archiving-disc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  color: var(--color-text-primary);
+}
+
+.archiving-disc-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 3px;
+}
+
+.archiving-disc-meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.archiving-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+
+.archiving-folder-display {
+  flex: 1;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archiving-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archiving-progress-bar {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.archiving-progress-fill {
+  height: 100%;
+  background: var(--color-text-primary);
+  border-radius: 1px;
+  transition: width 0.5s linear;
+}
+
+.archiving-progress-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.archiving-eta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.archiving-in-library-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--accent-active);
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.archiving-in-library-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-active);
+}
+
+.archiving-error-msg {
+  font-size: 11px;
+  color: #e05a5a;
+  margin-top: 3px;
+}
+
+.archiving-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.archiving-btn-primary {
+  width: 100%;
+  padding: 9px 16px;
+  background: var(--bg-handle);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--motion-standard);
+}
+
+.archiving-btn-primary:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.archiving-btn-primary:not(:disabled):hover {
+  opacity: 0.88;
+}
+
+.archiving-btn-secondary {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 0.5px solid var(--border-frame);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--motion-standard);
+}
+
+.archiving-btn-secondary:hover {
+  background: var(--bg-elevated);
+}
+
+.archiving-btn-cancel {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 0.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--motion-standard);
+}
+
+.archiving-btn-cancel:hover {
+  color: var(--color-text-primary);
+}
+
+.archiving-complete .archiving-progress-bar {
+  display: none;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
