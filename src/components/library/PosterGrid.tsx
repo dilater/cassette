@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { FolderGroup, LibraryItem } from "../../types/library";
-import { posterColor } from "../../lib/format";
+import { posterColor, formatDuration } from "../../lib/format";
 import { toggleFavourite } from "../../lib/tauri";
 import CardContextMenu from "./CardContextMenu";
 
@@ -15,6 +15,7 @@ interface Props {
 
 interface ContextMenuState {
   item: LibraryItem;
+  group: FolderGroup;
   x: number;
   y: number;
 }
@@ -38,10 +39,10 @@ export default function PosterGrid({ groups, onPlay, onOpenGroup, onEdit, onChan
     onChanged?.();
   }, [localFavs, onChanged]);
 
-  const handleContextMenu = useCallback((e: React.MouseEvent, item: LibraryItem) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, item: LibraryItem, group: FolderGroup) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({ item, x: e.clientX, y: e.clientY });
+    setContextMenu({ item, group, x: e.clientX, y: e.clientY });
   }, []);
 
   if (groups.length === 0) return null;
@@ -61,13 +62,16 @@ export default function PosterGrid({ groups, onPlay, onOpenGroup, onEdit, onChan
             : () => onPlay(firstItem);
           const isFav = localFavs[firstItem?.id] ?? firstItem?.is_favourite ?? false;
           const isFlourishing = auroraCards[group.dirPath] ?? false;
+          const isFilm = !group.isTV && count === 1;
+          const dur = firstItem?.duration_seconds;
+          const durLabel = isFilm && dur && dur >= 60 ? formatDuration(dur) : null;
 
           return (
             <div
               key={group.dirPath}
               className={`poster-card${isFlourishing ? " is-favouriting" : ""}`}
               onClick={handleClick}
-              onContextMenu={(e) => { e.preventDefault(); handleContextMenu(e, firstItem); }}
+              onContextMenu={(e) => { e.preventDefault(); handleContextMenu(e, firstItem, group); }}
             >
               <div className="poster-image">
                 {posterSrc ? (
@@ -76,6 +80,7 @@ export default function PosterGrid({ groups, onPlay, onOpenGroup, onEdit, onChan
                   <div className="poster-placeholder" style={{ background: posterColor(group.name) }} />
                 )}
                 {isFlourishing && <div className="star-aurora" />}
+                {durLabel && <span className="poster-duration">{durLabel}</span>}
                 <button
                   className={`star-btn${isFav ? " starred" : ""}`}
                   onClick={(e) => handleStarClick(e, firstItem, group.dirPath)}
@@ -110,6 +115,7 @@ export default function PosterGrid({ groups, onPlay, onOpenGroup, onEdit, onChan
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
           onChanged={() => { setContextMenu(null); onChanged?.(); }}
+          onEdit={() => { setContextMenu(null); onEdit(contextMenu.group); }}
         />
       )}
     </>

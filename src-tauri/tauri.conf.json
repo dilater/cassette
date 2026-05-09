@@ -41,6 +41,7 @@
       "lib/WebView2Loader.dll": "WebView2Loader.dll",
       "lib/libmpv-2.dll": "libmpv-2.dll",
       "bin/ffmpeg.exe": "ffmpeg.exe",
+      "bin/ffprobe.exe": "ffprobe.exe",
       "resources/shaders/KrigBilateral.glsl": "shaders/KrigBilateral.glsl",
       "resources/shaders/Anime4K_Upscale_CNN_x2_M.glsl": "shaders/Anime4K_Upscale_CNN_x2_M.glsl",
       "resources/shaders/Anime4K_Upscale_CNN_x2_VL.glsl": "shaders/Anime4K_Upscale_CNN_x2_VL.glsl",

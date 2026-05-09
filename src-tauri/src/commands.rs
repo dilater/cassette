@@ -15,6 +15,14 @@ fn find_ffmpeg(app: &tauri::AppHandle) -> String {
         .unwrap_or_else(|| "ffmpeg".to_string())
 }
 
+fn find_ffprobe(app: &tauri::AppHandle) -> String {
+    app.path().resource_dir().ok()
+        .map(|d| d.join("ffprobe.exe"))
+        .filter(|p| p.exists())
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "ffprobe".to_string())
+}
+
 // ── playback ──────────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -903,4 +911,36 @@ pub async fn torrent_get_file_path(
     let guard = session.0.read().await;
     let sess = guard.as_ref().ok_or("torrent session not started")?;
     Ok(crate::torrents::manager::get_file_path(sess, id as usize, file_index))
+}
+
+#[tauri::command]
+pub async fn scan_film_durations(app: tauri::AppHandle, db: State<'_, SharedDb>) -> Result<u32, String> {
+    let ffprobe = find_ffprobe(&app);
+    let films: Vec<(i64, String)> = {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        db::get_films_needing_duration(&conn).map_err(|e| e.to_string())?
+    };
+    let mut updated: u32 = 0;
+    for (file_id, path) in films {
+        let output = tokio::process::Command::new(&ffprobe)
+            .args(["-v", "quiet", "-print_format", "json", "-show_format", &path])
+            .output()
+            .await;
+        let Ok(out) = output else { continue };
+        if !out.status.success() { continue }
+        let json: serde_json::Value = match serde_json::from_slice(&out.stdout) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let dur_str = json["format"]["duration"].as_str().unwrap_or("");
+        let dur_secs = match dur_str.parse::<f64>() {
+            Ok(d) if d >= 60.0 => d as i64,
+            _ => continue,
+        };
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        if db::update_duration(&conn, file_id, dur_secs).is_ok() {
+            updated += 1;
+        }
+    }
+    Ok(updated)
 }

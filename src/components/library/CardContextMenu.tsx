@@ -8,9 +8,10 @@ interface Props {
   y: number;
   onClose: () => void;
   onChanged: () => void;
+  onEdit?: () => void;
 }
 
-export default function CardContextMenu({ item, x, y, onClose, onChanged }: Props) {
+export default function CardContextMenu({ item, x, y, onClose, onChanged, onEdit }: Props) {
   const [localRating, setLocalRating] = useState<number | null>(item.user_rating);
   const [localStatus, setLocalStatus] = useState(item.watch_status);
   const [localNote, setLocalNote] = useState(item.notes ?? "");
@@ -76,6 +77,14 @@ export default function CardContextMenu({ item, x, y, onClose, onChanged }: Prop
         style={{ left: clampedX, top: clampedY }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Edit metadata */}
+        {onEdit && (
+          <>
+            <button className="ctx-item" onClick={onEdit}>Edit metadata</button>
+            <div className="ctx-divider" />
+          </>
+        )}
+
         {/* Watch status */}
         <button className="ctx-item" onClick={handleStatusToggle}>
           {localStatus === "watched" ? "Mark as unwatched" : "Mark as watched"}

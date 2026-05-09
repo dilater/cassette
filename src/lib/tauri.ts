@@ -52,6 +52,7 @@ export const addWatchedFolder = (path: string) => invoke<void>("add_watched_fold
 export const removeWatchedFolder = (path: string) => invoke<void>("remove_watched_folder", { path });
 export const listWatchedFolders = () => invoke<WatchedFolder[]>("list_watched_folders");
 export const rescan = () => invoke<void>("rescan");
+export const scanFilmDurations = () => invoke<number>("scan_film_durations");
 export const libraryList = (kind: LibraryFilter) => invoke<LibraryItem[]>("library_list", { kind });
 export const libraryNeedsReview = () => invoke<LibraryItem[]>("library_needs_review");
 export const tagNeedsReview = (fileId: number, title: string, season: number | null, episode: number | null) =>

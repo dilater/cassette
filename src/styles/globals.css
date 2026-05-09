@@ -1547,6 +1547,23 @@ input {
   background: rgba(30, 30, 30, 0.88);
 }
 
+/* ── film duration badge ──────────────────────────────────────────────────────── */
+
+.poster-duration {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 2px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+  letter-spacing: 0.02em;
+}
+
 /* ── metadata editor modal ───────────────────────────────────────────────────── */
 
 .metadata-editor-overlay {

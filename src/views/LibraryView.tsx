@@ -3,7 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { LibraryItem, WatchedFolder, LibraryFilter, FolderGroup } from "../types/library";
-import { libraryList, listWatchedFolders, rescan, fetchMetadataAll, getFavouriteFilms, getFavouriteEpisodes, getCollectionStats, libraryNeedsReview, tagNeedsReview } from "../lib/tauri";
+import { libraryList, listWatchedFolders, rescan, fetchMetadataAll, getFavouriteFilms, getFavouriteEpisodes, getCollectionStats, libraryNeedsReview, tagNeedsReview, scanFilmDurations } from "../lib/tauri";
 import { posterColor } from "../lib/format";
 import FilterChips from "../components/library/FilterChips";
 import ContinueWatching from "../components/library/ContinueWatching";
@@ -141,6 +141,8 @@ export default function LibraryView({ onPlay }: Props) {
     setScanning(false);
     // Kick off metadata fetch silently — errors mean no API key configured, which is fine
     fetchMetadataAll().catch(() => {});
+    // Scan film durations via ffprobe for any films missing duration_seconds
+    scanFilmDurations().catch(() => {});
   }
 
   // Rescan on mount so new files are picked up automatically

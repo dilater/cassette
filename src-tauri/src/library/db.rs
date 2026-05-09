@@ -578,6 +578,22 @@ pub struct WatchedFolder {
     pub added_at: i64,
 }
 
+pub fn get_films_needing_duration(conn: &Connection) -> Result<Vec<(i64, String)>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, path FROM files WHERE parsed_season IS NULL AND duration_seconds IS NULL"
+    )?;
+    let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    rows.collect()
+}
+
+pub fn update_duration(conn: &Connection, file_id: i64, duration_seconds: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE files SET duration_seconds = ?1 WHERE id = ?2",
+        params![duration_seconds, file_id],
+    )?;
+    Ok(())
+}
+
 pub struct FileRow {
     pub path: String,
     pub filename: String,

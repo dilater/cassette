@@ -257,6 +257,7 @@ pub fn run() {
             commands::torrent_remove,
             commands::torrent_list,
             commands::torrent_get_file_path,
+            commands::scan_film_durations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
