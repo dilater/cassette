@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "cassette",
+  "version": "0.1.0",
+  "identifier": "com.cassette.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Cassette",
+        "width": 1200,
+        "height": 800,
+        "decorations": false,
+        "transparent": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "lib/WebView2Loader.dll": "WebView2Loader.dll",
+      "lib/libmpv-2.dll": "libmpv-2.dll",
+      "bin/ffmpeg.exe": "ffmpeg.exe",
+      "resources/shaders/KrigBilateral.glsl": "shaders/KrigBilateral.glsl",
+      "resources/shaders/Anime4K_Upscale_CNN_x2_M.glsl": "shaders/Anime4K_Upscale_CNN_x2_M.glsl",
+      "resources/shaders/Anime4K_Upscale_CNN_x2_VL.glsl": "shaders/Anime4K_Upscale_CNN_x2_VL.glsl",
+      "resources/shaders/Anime4K_Restore_CNN_Soft_M.glsl": "shaders/Anime4K_Restore_CNN_Soft_M.glsl",
+      "resources/shaders/Anime4K_Restore_CNN_Soft_VL.glsl": "shaders/Anime4K_Restore_CNN_Soft_VL.glsl",
+      "resources/fonts/Inter-Regular.ttf": "fonts/Inter-Regular.ttf",
+      "resources/fonts/BebasNeue-Regular.ttf": "fonts/BebasNeue-Regular.ttf",
+      "resources/fonts/PlayfairDisplay-Regular.ttf": "fonts/PlayfairDisplay-Regular.ttf",
+      "resources/fonts/EBGaramond-Regular.ttf": "fonts/EBGaramond-Regular.ttf",
+      "resources/fonts/JetBrainsMono-Regular.ttf": "fonts/JetBrainsMono-Regular.ttf"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "skip"
+      }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["mkv", "mp4", "avi", "mov", "m4v", "webm", "ts", "flv", "wmv", "m2ts"],
+        "name": "Video",
+        "role": "Viewer"
+      }
+    ]
+  }
+}

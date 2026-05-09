@@ -1,0 +1,111 @@
+:root {
+  --aurora-pink:   #ff5ea3;
+  --aurora-orange: #ff8a3d;
+  --aurora-yellow: #ffd75e;
+  --aurora-green:  #5DCAA5;
+  --aurora-cyan:   #5dcdf3;
+  --aurora-violet: #8b5cf6;
+}
+
+/* ── diffuse blobs (play/pause toggle) ───────────────────────────────────────── */
+
+.blob-a {
+  background: radial-gradient(circle, rgba(255,94,163,0.85) 0%, transparent 70%);
+  filter: blur(14px);
+}
+.blob-b {
+  background: radial-gradient(circle, rgba(255,138,61,0.75) 0%, transparent 70%);
+  filter: blur(16px);
+}
+.blob-c {
+  background: radial-gradient(circle, rgba(93,205,243,0.7) 0%, transparent 70%);
+  filter: blur(18px);
+}
+.blob-d {
+  background: radial-gradient(circle, rgba(139,92,246,0.6) 0%, transparent 70%);
+  filter: blur(20px);
+}
+.blob-e {
+  background: radial-gradient(circle, rgba(93,202,165,0.5) 0%, transparent 70%);
+  filter: blur(12px);
+}
+
+@keyframes blob-drift {
+  0%   { opacity: 0; transform: scale(0.3); }
+  30%  { opacity: 1; }
+  70%  { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* ── chip sweep (profile + filter chips) ─────────────────────────────────────── */
+
+.chip-aurora {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255,94,163,0.5),
+    rgba(255,138,61,0.5),
+    rgba(93,202,165,0.5),
+    rgba(93,205,243,0.5),
+    rgba(139,92,246,0.5),
+    transparent
+  );
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+@keyframes chip-sweep {
+  0%   { opacity: 0; transform: translateX(-100%); }
+  40%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
+}
+
+/* ── conic bloom (continue watching card hover) ──────────────────────────────── */
+
+@keyframes glow-bloom {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.4; }
+  100% { opacity: 0.15; }
+}
+
+/* ── linear flash (scrubber seek) ────────────────────────────────────────────── */
+
+.scrub-aurora::before {
+  content: '';
+  position: absolute;
+  inset: -1px 0;
+  background: linear-gradient(90deg,
+    transparent, #ff5ea3, #ff8a3d, #5DCAA5, #5dcdf3, #8b5cf6, transparent
+  );
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+@keyframes scrub-flash {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* ── conic bloom small (filter chip bg) ──────────────────────────────────────── */
+
+.f-aurora {
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  background: conic-gradient(from 0deg, #ff5ea3, #ff8a3d, #ffd75e, #5DCAA5, #5dcdf3, #8b5cf6, #ff5ea3);
+  border-radius: 999px;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+@keyframes f-bloom {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.65; }
+  100% { opacity: 0; }
+}
+
+.filter-chip.is-flourishing .f-aurora {
+  animation: f-bloom 700ms ease-out forwards;
+}

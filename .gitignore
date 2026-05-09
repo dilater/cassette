@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+metadata_cache/
+.env
+src-tauri/bin/ffmpeg.exe
+src-tauri/bin/mpv.exe
+src-tauri/lib/libmpv-2.dll
+src-tauri/lib/libmpv.dll.a
+src-tauri/lib/WebView2Loader.dll
