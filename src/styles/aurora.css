@@ -1,32 +1,37 @@
+/* ── Ember interaction system ────────────────────────────────────────────────── */
+/* Replaces the aurora RGB spectrum with warm ember warmth.                      */
+/* Class names are preserved for backward compat with existing components.       */
+
 :root {
-  --aurora-pink:   #ff5ea3;
-  --aurora-orange: #ff8a3d;
-  --aurora-yellow: #ffd75e;
-  --aurora-green:  #5DCAA5;
-  --aurora-cyan:   #5dcdf3;
-  --aurora-violet: #8b5cf6;
+  --ember-blob-hot:  rgba(255, 107, 31, 0.85);
+  --ember-blob-mid:  rgba(201, 80, 26, 0.70);
+  --ember-blob-cool: rgba(107, 42, 15, 0.50);
+  --ember-blob-warm: rgba(140, 58, 58, 0.45);
+  --ember-blob-dim:  rgba(255, 107, 31, 0.30);
 }
 
-/* ── diffuse blobs (play/pause toggle) ───────────────────────────────────────── */
+/* ── diffuse ember blobs (play/pause toggle) ─────────────────────────────────── */
+/* Five blobs of warm amber/orange light that expand outward from the button.    */
+/* They each have slightly different delays and blurs to feel organic.           */
 
 .blob-a {
-  background: radial-gradient(circle, rgba(255,94,163,0.85) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ember-blob-hot) 0%, transparent 70%);
   filter: blur(14px);
 }
 .blob-b {
-  background: radial-gradient(circle, rgba(255,138,61,0.75) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ember-blob-mid) 0%, transparent 70%);
   filter: blur(16px);
 }
 .blob-c {
-  background: radial-gradient(circle, rgba(93,205,243,0.7) 0%, transparent 70%);
-  filter: blur(18px);
-}
-.blob-d {
-  background: radial-gradient(circle, rgba(139,92,246,0.6) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ember-blob-cool) 0%, transparent 70%);
   filter: blur(20px);
 }
+.blob-d {
+  background: radial-gradient(circle, var(--ember-blob-warm) 0%, transparent 70%);
+  filter: blur(18px);
+}
 .blob-e {
-  background: radial-gradient(circle, rgba(93,202,165,0.5) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ember-blob-dim) 0%, transparent 70%);
   filter: blur(12px);
 }
 
@@ -37,18 +42,17 @@
   100% { opacity: 0; transform: scale(1.5); }
 }
 
-/* ── chip sweep (profile + filter chips) ─────────────────────────────────────── */
+/* ── ember chip sweep (profile chip + filter chip activation) ────────────────── */
+/* A warm gradient slides left to right across the chip interior on activation.  */
 
 .chip-aurora {
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg,
     transparent,
-    rgba(255,94,163,0.5),
-    rgba(255,138,61,0.5),
-    rgba(93,202,165,0.5),
-    rgba(93,205,243,0.5),
-    rgba(139,92,246,0.5),
+    rgba(255, 107, 31, 0.45),
+    rgba(201, 80, 26, 0.5),
+    rgba(255, 107, 31, 0.35),
     transparent
   );
   filter: blur(2px);
@@ -61,22 +65,28 @@
   100% { opacity: 0; transform: translateX(100%); }
 }
 
-/* ── conic bloom (continue watching card hover) ──────────────────────────────── */
+/* ── ember bloom behind card (Continue Watching hover) ───────────────────────── */
+/* A warm glow radiates from beneath the card on hover.                          */
 
 @keyframes glow-bloom {
   0%   { opacity: 0; }
-  35%  { opacity: 0.4; }
-  100% { opacity: 0.15; }
+  35%  { opacity: 0.45; }
+  100% { opacity: 0.18; }
 }
 
-/* ── linear flash (scrubber seek) ────────────────────────────────────────────── */
+/* ── ember flash (scrubber on seek) ─────────────────────────────────────────── */
+/* Warm ember runs along the scrubber fill on seek, then fades.                  */
 
 .scrub-aurora::before {
   content: '';
   position: absolute;
   inset: -1px 0;
   background: linear-gradient(90deg,
-    transparent, #ff5ea3, #ff8a3d, #5DCAA5, #5dcdf3, #8b5cf6, transparent
+    transparent,
+    rgba(255, 107, 31, 0.7),
+    rgba(201, 80, 26, 0.8),
+    rgba(255, 107, 31, 0.6),
+    transparent
   );
   filter: blur(1px);
   pointer-events: none;
@@ -84,17 +94,22 @@
 
 @keyframes scrub-flash {
   0%   { opacity: 0; }
-  30%  { opacity: 0.9; }
+  30%  { opacity: 1; }
   100% { opacity: 0; }
 }
 
-/* ── conic bloom small (filter chip bg) ──────────────────────────────────────── */
+/* ── ember bloom small (filter chip background) ─────────────────────────────── */
+/* A tight warm glow behind the chip pill blooms on activation.                  */
 
 .f-aurora {
   position: absolute;
   inset: -1px;
   z-index: -1;
-  background: conic-gradient(from 0deg, #ff5ea3, #ff8a3d, #ffd75e, #5DCAA5, #5dcdf3, #8b5cf6, #ff5ea3);
+  background: radial-gradient(ellipse at 50% 50%,
+    rgba(255, 107, 31, 0.55) 0%,
+    rgba(201, 80, 26, 0.3) 50%,
+    transparent 75%
+  );
   border-radius: 999px;
   filter: blur(4px);
   pointer-events: none;
@@ -102,7 +117,7 @@
 
 @keyframes f-bloom {
   0%   { opacity: 0; }
-  40%  { opacity: 0.65; }
+  40%  { opacity: 0.7; }
   100% { opacity: 0; }
 }
 

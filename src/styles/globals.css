@@ -5,18 +5,6 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Bebas Neue";
-  src: url("/fonts/BebasNeue-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Playfair Display";
-  src: url("/fonts/PlayfairDisplay-Regular.ttf") format("truetype");
-  font-weight: 100 900;
-  font-display: swap;
-}
-@font-face {
   font-family: "EB Garamond";
   src: url("/fonts/EBGaramond-Regular.ttf") format("truetype");
   font-weight: 400 800;
@@ -30,37 +18,67 @@
 }
 
 :root {
-  --color-bg: #0B0B0C;
-  --color-surface: #141416;
-  --color-text-primary: #F5F5F3;
-  --color-text-secondary: #A1A1A6;
-  --color-accent: #8C3A3A;
+  /* Lacquer surface family */
+  --lacquer-deep: #0A0908;
+  --lacquer-surface: #141210;
+  --lacquer-raised: #1C1A17;
+  --lacquer-edge: #221F1B;
 
-  --bg-base: var(--color-bg);
-  --bg-frame: var(--color-surface);
-  --bg-elevated: rgba(245, 245, 243, 0.045);
-  --bg-chip: rgba(20, 20, 22, 0.74);
-  --bg-hover: rgba(245, 245, 243, 0.1);
-  --bg-handle: var(--color-text-primary);
+  /* Ember interaction family */
+  --ember-core: #FF6B1F;
+  --ember-mid: #C9501A;
+  --ember-deep: #6B2A0F;
+  --ember-resin: #8C3A3A;
 
-  --border-subtle: rgba(245, 245, 243, 0.035);
-  --border-frame: rgba(245, 245, 243, 0.075);
+  /* Light / text family */
+  --light-primary: #F2EBE0;
+  --light-secondary: #B8B0A4;
+  --light-tertiary: #6E6962;
+  --light-mono: #E8E2D6;
 
-  --text-primary: var(--color-text-primary);
-  --text-secondary: var(--color-text-secondary);
-  --text-tertiary: rgba(161, 161, 166, 0.78);
-  --text-muted: rgba(161, 161, 166, 0.62);
-  --text-inverse: var(--color-bg);
+  /* Functional accents (used sparingly) */
+  --accent-info: #6B8FB5;
+  --accent-positive: #7A9B6E;
+  --accent-warning: #C9A55A;
 
-  --accent-active: var(--color-accent);
-  --motion-standard: 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Semantic layer — maps to new palette */
+  --color-bg: var(--lacquer-deep);
+  --color-surface: var(--lacquer-surface);
+  --color-text-primary: var(--light-primary);
+  --color-text-secondary: var(--light-secondary);
+  --color-accent: var(--ember-resin);
+
+  /* Legacy surface tokens — mapped to new palette */
+  --bg-base: var(--lacquer-deep);
+  --bg-frame: var(--lacquer-surface);
+  --bg-elevated: rgba(28, 26, 23, 0.75);
+  --bg-chip: rgba(20, 18, 16, 0.97);
+  --bg-hover: rgba(255, 107, 31, 0.08);
+  --bg-handle: var(--light-primary);
+
+  --border-subtle: rgba(242, 235, 224, 0.028);
+  --border-frame: rgba(242, 235, 224, 0.065);
+
+  --text-primary: var(--light-primary);
+  --text-secondary: var(--light-secondary);
+  --text-tertiary: rgba(184, 176, 164, 0.75);
+  --text-muted: var(--light-tertiary);
+  --text-inverse: var(--lacquer-deep);
+
+  /* Ember replaces the old green accent for interactive/media states */
+  --accent-active: var(--ember-mid);
+
+  /* Motion: mechanical, weighted */
+  --motion-standard: 180ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --motion-activate: 200ms cubic-bezier(0.34, 1.4, 0.5, 1);
+  --motion-dismiss: 200ms cubic-bezier(0.7, 0, 0.84, 0);
 
   --radius-md: 8px;
   --radius-lg: 12px;
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-mono: "SF Mono", "JetBrains Mono", "Consolas", monospace;
+  --font-display: "EB Garamond", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
 }
 
 * {
@@ -142,7 +160,7 @@ input {
 .title-bar-label {
   font-size: 13px;
   font-weight: 400;
-  color: rgba(245, 245, 243, 0.82);
+  color: rgba(242, 235, 224, 0.82);
   flex: 1;
 }
 
@@ -195,7 +213,7 @@ input {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--bg-base);
+  background: var(--lacquer-deep);
   border-radius: var(--radius-lg);
   border: 0.5px solid var(--border-frame);
   overflow: hidden;
@@ -272,25 +290,33 @@ input {
 }
 
 .filter-chip:hover {
-  color: var(--text-primary);
-  background: var(--bg-elevated);
+  color: var(--light-primary);
+  background: rgba(255, 107, 31, 0.06);
+  border-color: rgba(242, 235, 224, 0.06);
+}
+
+.filter-chip:active {
+  transform: scale(0.96);
+  transition: transform 80ms ease-in;
 }
 
 .filter-chip.active {
-  background: var(--bg-handle);
-  color: var(--text-inverse);
-  border-color: transparent;
+  background: var(--lacquer-raised);
+  color: var(--light-primary);
+  border-color: rgba(255, 107, 31, 0.22);
   font-weight: 500;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 8px rgba(201, 80, 26, 0.12);
 }
 
 /* ── section labels ──────────────────────────────────────────────────────────── */
 
 .section-label {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
   color: var(--text-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   margin-top: 20px;
   margin-bottom: 10px;
 }
@@ -338,16 +364,17 @@ input {
 
 .cw-progress-fill {
   height: 100%;
-  background: var(--bg-handle);
+  background: linear-gradient(90deg, var(--ember-deep) 0%, var(--ember-mid) 55%, var(--ember-core) 100%);
   border-radius: 1px;
+  box-shadow: 0 0 4px rgba(201, 80, 26, 0.5);
 }
 
 .cw-glow {
   position: absolute;
   inset: -1px;
   z-index: -1;
-  background: conic-gradient(from 180deg, #ff5ea3, #ff8a3d, #5DCAA5, #5dcdf3, #8b5cf6, #ff5ea3);
-  filter: blur(8px);
+  background: radial-gradient(ellipse at 50% 100%, rgba(201, 80, 26, 0.7) 0%, rgba(107, 42, 15, 0.3) 50%, transparent 75%);
+  filter: blur(6px);
   border-radius: var(--radius-md);
   opacity: 0;
 }
@@ -523,8 +550,7 @@ input {
 .transport-section {
   flex-shrink: 0;
   padding: 14px 18px 18px;
-  background: rgba(12, 12, 12, 0.85);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(to top, var(--lacquer-deep) 55%, rgba(10, 9, 8, 0.0));
 }
 
 /* ── HUD chips ───────────────────────────────────────────────────────────────── */
@@ -537,10 +563,10 @@ input {
   align-items: center;
   gap: 8px;
   background: var(--bg-chip);
+  border: 0.5px solid rgba(242, 235, 224, 0.055);
   border-radius: 999px;
   padding: 5px 11px;
   pointer-events: none;
-  backdrop-filter: blur(8px);
 }
 
 .hud-timecode .tc {
@@ -612,8 +638,7 @@ input {
 }
 
 .player-view .title-bar {
-  background: rgba(11, 11, 12, 0.68);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(to bottom, rgba(10, 9, 8, 0.92) 60%, transparent);
   position: relative;
   z-index: 10;
   transition: opacity var(--motion-standard), transform var(--motion-standard);
@@ -764,15 +789,15 @@ input {
   bottom: calc(100% + 8px);
   right: 0;
   min-width: 180px;
-  background: rgba(18, 18, 18, 0.96);
+  background: var(--lacquer-raised);
   border: 0.5px solid var(--border-frame);
   border-radius: var(--radius-md);
-  backdrop-filter: blur(16px);
   padding: 6px;
   z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .chip-popover-down {
@@ -934,21 +959,21 @@ input {
   background: var(--bg-chip);
   border-radius: 999px;
   padding: 5px 11px;
-  backdrop-filter: blur(8px);
   cursor: pointer;
   transition: background var(--motion-standard);
-  border: none;
+  border: 0.5px solid rgba(242, 235, 224, 0.055);
 }
 
 .player-chip:hover {
-  background: rgba(30, 30, 30, 0.85);
+  background: var(--lacquer-raised);
 }
 
 .chip-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent-active);
+  background: var(--ember-core);
+  box-shadow: 0 0 5px rgba(255, 107, 31, 0.6);
   flex-shrink: 0;
 }
 
@@ -994,8 +1019,14 @@ input {
 }
 
 .skip-btn:hover {
-  color: rgba(245, 245, 243, 1);
-  background: var(--bg-hover);
+  color: var(--light-primary);
+  background: rgba(255, 107, 31, 0.1);
+}
+
+.skip-btn:active {
+  transform: scale(0.93);
+  background: rgba(201, 80, 26, 0.18);
+  transition: transform 80ms ease-in;
 }
 
 .skip-label {
@@ -1005,7 +1036,7 @@ input {
   letter-spacing: 0;
 }
 
-/* Play/pause — solid white circle when paused */
+/* Play/pause — always faintly ember glowing, brighter when paused */
 .play-pause-btn {
   width: 72px;
   height: 72px;
@@ -1014,23 +1045,32 @@ input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: opacity var(--motion-standard), background var(--motion-standard);
-  color: var(--text-inverse);
-  background: transparent;
+  transition: box-shadow 600ms ease-out, background var(--motion-standard);
+  color: var(--light-primary);
+  background: rgba(201, 80, 26, 0.1);
   position: relative;
+  box-shadow: 0 0 18px rgba(201, 80, 26, 0.18), inset 0 1px 0 rgba(255, 107, 31, 0.08);
 }
 
 .play-pause-btn.is-paused {
-  background: var(--bg-handle);
+  background: rgba(201, 80, 26, 0.2);
+  box-shadow: 0 0 28px rgba(255, 107, 31, 0.35), 0 0 8px rgba(201, 80, 26, 0.4), inset 0 1px 0 rgba(255, 107, 31, 0.15);
 }
 
 .play-pause-btn:not(.is-paused) {
-  color: rgba(245, 245, 243, 0.8);
-  background: rgba(245, 245, 243, 0.12);
+  color: var(--light-primary);
+  background: rgba(201, 80, 26, 0.1);
 }
 
 .play-pause-btn:hover {
-  opacity: 0.88;
+  box-shadow: 0 0 24px rgba(255, 107, 31, 0.28), inset 0 1px 0 rgba(255, 107, 31, 0.12);
+}
+
+.play-pause-btn:active {
+  transform: scale(0.96);
+  background: rgba(201, 80, 26, 0.28);
+  box-shadow: 0 0 12px rgba(201, 80, 26, 0.5), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 80ms ease-in, box-shadow 80ms ease-in;
 }
 
 /* ── transport section ───────────────────────────────────────────────────────── */
@@ -1038,8 +1078,7 @@ input {
 .transport-section {
   flex-shrink: 0;
   padding: 12px 18px 16px;
-  background: rgba(11, 11, 12, 0.84);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(to top, var(--lacquer-deep) 55%, rgba(10, 9, 8, 0.0));
   position: relative;
   z-index: 10;
   transition: opacity var(--motion-standard), transform var(--motion-standard);
@@ -1059,7 +1098,6 @@ input {
   justify-content: center;
   color: rgba(245, 245, 243, 0.5);
   background: var(--bg-chip);
-  backdrop-filter: blur(8px);
   cursor: pointer;
   transition: color var(--motion-standard), background var(--motion-standard), opacity var(--motion-standard);
   z-index: 20;
@@ -1098,9 +1136,10 @@ input {
   left: 0;
   top: 0;
   height: 100%;
-  background: var(--bg-handle);
+  background: linear-gradient(90deg, var(--ember-deep) 0%, var(--ember-mid) 60%, var(--ember-core) 100%);
   border-radius: 1px;
   pointer-events: none;
+  box-shadow: 0 0 4px rgba(201, 80, 26, 0.4);
 }
 
 .scrubber-handle {
@@ -1135,11 +1174,11 @@ input {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-primary);
-  background: var(--bg-chip);
+  background: var(--lacquer-raised);
+  border: 0.5px solid var(--border-frame);
   padding: 4px 8px;
   border-radius: 6px;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
 }
 
 .scrub-thumb-wrap {
@@ -1232,8 +1271,13 @@ input {
 }
 
 .transport-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  color: var(--light-primary);
+  background: rgba(255, 107, 31, 0.08);
+}
+
+.transport-btn:active {
+  transform: scale(0.92);
+  transition: transform 80ms ease-in;
 }
 
 .transport-play-btn {
@@ -1469,7 +1513,7 @@ input {
 
 .episode-progress-fill {
   height: 100%;
-  background: var(--accent-active);
+  background: linear-gradient(90deg, var(--ember-deep) 0%, var(--ember-mid) 100%);
   border-radius: 1px;
 }
 
@@ -1492,7 +1536,6 @@ input {
   opacity: 0;
   transition: opacity var(--motion-standard), color var(--motion-standard), background var(--motion-standard);
   z-index: 10;
-  backdrop-filter: blur(4px);
 }
 
 .poster-card:hover .poster-edit-btn {
@@ -1509,17 +1552,16 @@ input {
 .metadata-editor-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.8);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px);
 }
 
 .metadata-editor {
-  background: var(--color-surface);
-  border: 0.5px solid rgba(245, 245, 243, 0.065);
+  background: var(--lacquer-surface);
+  border: 0.5px solid var(--border-frame);
   border-radius: var(--radius-lg);
   width: 480px;
   max-width: calc(100vw - 32px);
@@ -1527,7 +1569,7 @@ input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);
 }
 
 .editor-header {
@@ -1872,11 +1914,11 @@ input {
   opacity: 1;
 }
 .star-btn.starred {
-  color: #ffd75e;
+  color: var(--ember-core);
 }
 .star-btn:hover {
-  background: rgba(30, 30, 30, 0.85);
-  color: #ffd75e;
+  background: rgba(30, 26, 23, 0.9);
+  color: var(--ember-core);
 }
 
 /* Aurora star flourish */
@@ -1893,8 +1935,8 @@ input {
   height: 60px;
   pointer-events: none;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, #ff5ea3, #ff8a3d, #ffd75e, #5DCAA5, #5dcdf3, #8b5cf6, #ff5ea3);
-  filter: blur(8px);
+  background: radial-gradient(circle, rgba(255, 107, 31, 0.9) 0%, rgba(201, 80, 26, 0.5) 40%, rgba(107, 42, 15, 0.2) 70%, transparent 100%);
+  filter: blur(6px);
   z-index: 2;
   animation: star-bloom 860ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -1905,12 +1947,11 @@ input {
   position: fixed;
   z-index: 1000;
   width: 220px;
-  background: var(--bg-chip);
-  border: 1px solid var(--border-frame);
+  background: var(--lacquer-raised);
+  border: 0.5px solid var(--border-frame);
   border-radius: var(--radius-md);
   padding: 6px 0;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
 }
 .ctx-item {
   display: flex;
@@ -1949,9 +1990,9 @@ input {
   justify-content: center;
 }
 .ctx-rating-btn.active {
-  background: var(--accent-active);
-  color: #0c0c0c;
-  border-color: var(--accent-active);
+  background: var(--ember-mid);
+  color: var(--lacquer-deep);
+  border-color: var(--ember-mid);
 }
 .ctx-note-input {
   width: 100%;
@@ -2263,7 +2304,7 @@ input {
 }
 
 .torrent-card.complete {
-  border-color: rgba(93, 202, 165, 0.15);
+  border-color: rgba(201, 80, 26, 0.18);
 }
 
 .torrent-card-body {

@@ -355,6 +355,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
         onDoubleClick={() => appWindow.toggleMaximize()}
       >
         <button className="back-to-library" data-tauri-no-drag onClick={onBack}>library</button>
+        <EmberMark />
         <span className="title-bar-label mono">{currentItem.filename}</span>
         <WindowControls />
       </div>
@@ -419,6 +420,28 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
         />
       </div>
     </div>
+  );
+}
+
+function EmberMark() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      style={{ flexShrink: 0, marginRight: 8 }}
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="ember-glow-player" cx="50%" cy="88%" r="55%">
+          <stop offset="0%" stopColor="#FF6B1F" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#FF6B1F" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="20" height="20" rx="4" fill="#141210" />
+      <rect width="20" height="20" rx="4" fill="url(#ember-glow-player)" />
+      <path d="M7.5 6.5 L14 10 L7.5 13.5 Z" fill="#C9501A" />
+    </svg>
   );
 }
 

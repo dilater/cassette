@@ -209,6 +209,7 @@ export default function LibraryView({ onPlay }: Props) {
         data-tauri-drag-region
         onDoubleClick={() => appWindow.toggleMaximize()}
       >
+        <EmberMark />
         <span className="title-bar-label">Library</span>
         <button
           className={`library-refresh-btn${scanning ? " scanning" : ""}`}
@@ -468,6 +469,28 @@ function RefreshIcon() {
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M13.5 8a5.5 5.5 0 1 1-1.1-3.3" />
       <path d="M13.5 2.5v3h-3" />
+    </svg>
+  );
+}
+
+function EmberMark() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      style={{ flexShrink: 0, marginRight: 8 }}
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="ember-glow-lib" cx="50%" cy="88%" r="55%">
+          <stop offset="0%" stopColor="#FF6B1F" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#FF6B1F" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="20" height="20" rx="4" fill="#141210" />
+      <rect width="20" height="20" rx="4" fill="url(#ember-glow-lib)" />
+      <path d="M7.5 6.5 L14 10 L7.5 13.5 Z" fill="#C9501A" />
     </svg>
   );
 }
