@@ -227,11 +227,25 @@ pub fn tag_needs_review(
 pub struct VideoChildState(pub std::sync::Mutex<isize>);
 
 #[tauri::command]
-pub fn set_video_visible(visible: bool, video_child: State<'_, VideoChildState>) {
+pub fn set_video_visible(visible: bool, video_child: State<'_, VideoChildState>, window: tauri::Window) {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_SHOW, SW_HIDE};
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
         if let Ok(hwnd) = video_child.0.lock() {
+            // When showing, first resize to match the current parent window so
+            // the child fills the whole client area (it may have been created
+            // at startup with stale dimensions before the user resized).
+            if visible {
+                if let Ok(handle) = window.window_handle() {
+                    if let RawWindowHandle::Win32(h) = handle.as_raw() {
+                        crate::mpv::render::resize_video_child(
+                            *hwnd as windows_sys::Win32::Foundation::HWND,
+                            h.hwnd.get() as windows_sys::Win32::Foundation::HWND,
+                        );
+                    }
+                }
+            }
             let cmd = if visible { SW_SHOW } else { SW_HIDE };
             unsafe { ShowWindow(*hwnd as windows_sys::Win32::Foundation::HWND, cmd); }
         }
