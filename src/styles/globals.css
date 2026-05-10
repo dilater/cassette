@@ -666,13 +666,15 @@ input {
   background: linear-gradient(to bottom, rgba(10, 9, 8, 0.92) 60%, transparent);
   position: relative;
   z-index: 10;
-  transition: opacity var(--motion-standard), transform var(--motion-standard);
+  /* No transitions on chrome — must move as a single rigid object with the
+     window edge. Layout-affecting properties (transform, slide) and
+     opacity-fade are all dropped so fullscreen toggles instantly, matching
+     the OS window state change frame-for-frame. */
 }
 
-/* Fullscreen: title bar and transport slide/fade out */
+/* Fullscreen: title bar and transport vanish instantly */
 .player-view.is-fullscreen .title-bar {
   opacity: 0;
-  transform: translateY(-100%);
   pointer-events: none;
 }
 
@@ -683,19 +685,16 @@ input {
 
 .player-view.is-fullscreen.overlay-visible .title-bar {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
 .player-view.is-fullscreen .transport-section {
   opacity: 0;
-  transform: translateY(100%);
   pointer-events: none;
 }
 
 .player-view.is-fullscreen.overlay-visible .transport-section {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
@@ -931,6 +930,10 @@ input {
 
 /* ── video loading cover ────────────────────────────────────────────────────── */
 
+/* Cover is the foundation of the cinematic environment. It must occlude the
+   transparent hole through which mpv shows; if it ever fades partway, the
+   user sees through to the desktop. Therefore: no transition. The cover is
+   either fully opaque (cinema black) or fully gone, never in between. */
 .video-loading-cover {
   position: absolute;
   inset: 0;
@@ -938,7 +941,6 @@ input {
   z-index: 5;
   pointer-events: none;
   opacity: 1;
-  transition: opacity 400ms ease;
 }
 
 .video-loading-cover.is-ready {
@@ -1023,11 +1025,19 @@ input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 30%;
-  gap: 36px;
+  padding-bottom: 20%;
   opacity: 0;
   transition: opacity var(--motion-standard);
   pointer-events: none;
+}
+
+/* Inner row gives the three buttons a single shared vertical baseline.
+   align-items: center on the row guarantees the play button (78px) and skip
+   buttons (56px) line up on their geometric centres regardless of height. */
+.skip-overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 36px;
 }
 
 .skip-overlay.visible {
@@ -1072,7 +1082,8 @@ input {
   letter-spacing: 0;
 }
 
-/* Play/pause — orange triangle, no aura. Icon brightens on hover/paused. */
+/* Play/pause — white triangle. Ember warmth is the surrounding button bg
+   on hover and when paused. Icon glyph itself stays white at every state. */
 .play-pause-btn {
   width: 78px;
   height: 78px;
@@ -1081,18 +1092,18 @@ input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color var(--motion-standard), transform 80ms ease-in;
-  color: var(--ember-mid);
-  background: transparent;
+  transition: background var(--motion-standard), transform 80ms ease-in;
+  color: var(--light-primary);  /* white triangle, always */
+  background: rgba(201, 80, 26, 0.14);
   position: relative;
 }
 
 .play-pause-btn.is-paused {
-  color: var(--ember-core);
+  background: rgba(255, 107, 31, 0.26);
 }
 
 .play-pause-btn:hover {
-  color: var(--ember-core);
+  background: rgba(255, 107, 31, 0.32);
 }
 
 .play-pause-btn:active {
@@ -1107,7 +1118,7 @@ input {
   background: linear-gradient(to top, var(--lacquer-deep) 55%, rgba(10, 9, 8, 0.0));
   position: relative;
   z-index: 10;
-  transition: opacity var(--motion-standard), transform var(--motion-standard);
+  /* No transitions — see .player-view .title-bar comment for rationale. */
 }
 
 /* ── fullscreen button ───────────────────────────────────────────────────────── */

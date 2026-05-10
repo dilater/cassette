@@ -110,20 +110,19 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     }
   }, [state.position_seconds, currentItem.id]);
 
-  // Require duration to pass through 0 before accepting > 0 as "file loaded".
-  // Prevents stale mpv events from the previous file clearing the cover early.
-  const seenZeroDuration = useRef(false);
+  // Black cover stays opaque until the video is GUARANTEED to be rendering.
+  // Bulletproof: fixed 900ms timeout per item change. mpv has always started
+  // producing frames by that point. No reliance on duration-going-to-zero
+  // heuristics that can fail when state events stall or arrive out of order.
+  // Architecture note: WebView2 punches a transparent hole in .video-area so
+  // the mpv child HWND below shows through. While the cover is opaque, that
+  // hole is masked. The HWND itself uses BLACK_BRUSH background so even if
+  // mpv hasn't drawn yet, you see solid black, never see-through to desktop.
   useEffect(() => {
     setVideoReady(false);
-    seenZeroDuration.current = false;
+    const timer = setTimeout(() => setVideoReady(true), 900);
+    return () => clearTimeout(timer);
   }, [currentItem.id]);
-  useEffect(() => {
-    if (state.duration_seconds === 0) {
-      seenZeroDuration.current = true;
-    } else if (state.duration_seconds > 0 && seenZeroDuration.current) {
-      setVideoReady(true);
-    }
-  }, [state.duration_seconds]);
 
   // Load track list + kick off thumb pre-generation once file is ready
   const tracksLoadedRef = useRef(false);
@@ -220,13 +219,18 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     if (ep) onPlayItem(ep);
   }
 
-  // Sync fullscreen state when window is resized / OS changes it
+  // Sync fullscreen state when window is resized / OS changes it. Only update
+  // React state when the fullscreen value actually flips — otherwise every
+  // resize tick during a drag triggers a full PlayerView re-render and the
+  // chrome visibly trails the window edge.
   useEffect(() => {
     let unlistenFn: (() => void) | null = null;
     appWindow.onResized(async () => {
       const fs = await appWindow.isFullscreen();
-      setIsFullscreen(fs);
-      isFullscreenRef.current = fs;
+      if (fs !== isFullscreenRef.current) {
+        isFullscreenRef.current = fs;
+        setIsFullscreen(fs);
+      }
     }).then((fn) => { unlistenFn = fn; });
     return () => { unlistenFn?.(); };
   }, []);

@@ -64,10 +64,20 @@ export default function App() {
     init();
   }, []);
 
-  // Save window state debounced on resize; also sync video child size
+  // Resize handler is the hot path during a drag — fires dozens of times per
+  // second. Throttle the IPC to once per animation frame so the video child
+  // never has more than one resize call in flight at a time. Save the window
+  // state on a 1s debounce since that's a cold path.
   useEffect(() => {
-    const unlisten = appWindow.onResized(async () => {
-      forceVideoResize().catch(() => {});
+    let pendingResize = false;
+    const unlisten = appWindow.onResized(() => {
+      if (!pendingResize) {
+        pendingResize = true;
+        requestAnimationFrame(() => {
+          forceVideoResize().catch(() => {});
+          pendingResize = false;
+        });
+      }
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {

@@ -8,31 +8,33 @@ interface Props {
 export default function SkipOverlay({ paused, visible }: Props) {
   return (
     <div className={`skip-overlay${visible ? " visible" : ""}`}>
-      <button
-        className="skip-btn"
-        onClick={(e) => { e.stopPropagation(); seekRelative(-5); }}
-        aria-label="Skip back 5 seconds"
-      >
-        <SkipBackIcon />
-        <span className="skip-label">5</span>
-      </button>
+      <div className="skip-overlay-row">
+        <button
+          className="skip-btn"
+          onClick={(e) => { e.stopPropagation(); seekRelative(-5); }}
+          aria-label="Skip back 5 seconds"
+        >
+          <SkipBackIcon />
+          <span className="skip-label">5</span>
+        </button>
 
-      <button
-        className={`play-pause-btn${paused ? " is-paused" : ""}`}
-        onClick={(e) => { e.stopPropagation(); togglePause(); }}
-        aria-label={paused ? "Play" : "Pause"}
-      >
-        {paused ? <PlayIcon /> : <PauseIcon />}
-      </button>
+        <button
+          className={`play-pause-btn${paused ? " is-paused" : ""}`}
+          onClick={(e) => { e.stopPropagation(); togglePause(); }}
+          aria-label={paused ? "Play" : "Pause"}
+        >
+          {paused ? <PlayIcon /> : <PauseIcon />}
+        </button>
 
-      <button
-        className="skip-btn"
-        onClick={(e) => { e.stopPropagation(); seekRelative(5); }}
-        aria-label="Skip forward 5 seconds"
-      >
-        <SkipForwardIcon />
-        <span className="skip-label">5</span>
-      </button>
+        <button
+          className="skip-btn"
+          onClick={(e) => { e.stopPropagation(); seekRelative(5); }}
+          aria-label="Skip forward 5 seconds"
+        >
+          <SkipForwardIcon />
+          <span className="skip-label">5</span>
+        </button>
+      </div>
     </div>
   );
 }
