@@ -1,9 +1,40 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { FolderGroup, LibraryItem } from "../../types/library";
 import { posterColor, formatDuration } from "../../lib/format";
 import { toggleFavourite } from "../../lib/tauri";
 import CardContextMenu from "./CardContextMenu";
+
+function LazyPoster({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [inView, setInView] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { rootMargin: "200px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ width: "100%", height: "100%" }}>
+      {inView && (
+        <img
+          src={src}
+          alt={alt}
+          className="poster-real-img"
+          style={{ opacity: loaded ? 1 : 0, transition: "opacity 200ms ease" }}
+          onLoad={() => setLoaded(true)}
+        />
+      )}
+    </div>
+  );
+}
 
 interface Props {
   groups: FolderGroup[];
@@ -75,7 +106,7 @@ export default function PosterGrid({ groups, onPlay, onOpenGroup, onEdit, onChan
             >
               <div className="poster-image">
                 {posterSrc ? (
-                  <img src={posterSrc} alt={group.name} className="poster-real-img" />
+                  <LazyPoster src={posterSrc} alt={group.name} />
                 ) : (
                   <div className="poster-placeholder" style={{ background: posterColor(group.name) }} />
                 )}

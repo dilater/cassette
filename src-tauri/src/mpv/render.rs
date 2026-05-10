@@ -85,7 +85,7 @@ pub fn spawn_state_thread(shared_mpv: SharedMpv, pending_seek: super::SharedPend
             let mut prev_duration = 0.0_f64;
             loop {
                 std::thread::sleep(Duration::from_millis(250));
-                if let Ok(guard) = shared_mpv.lock() {
+                if let Ok(guard) = shared_mpv.try_lock() {
                     let mpv = &guard.0;
                     let dur = mpv.get_property::<f64>("duration").unwrap_or(0.0);
 

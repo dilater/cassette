@@ -32,5 +32,4 @@ notify = "6"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tokio = { version = "1", features = ["time", "process"] }
 tauri-plugin-dialog = "2"
-librqbit = { version = "8.1.1", default-features = false, features = ["default-tls"] }
 anyhow = "1"

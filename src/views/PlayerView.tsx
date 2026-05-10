@@ -376,7 +376,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
 
       {/* Video frame — transparent so mpv child HWND shows through */}
       <div className="video-area" onClick={handleVideoAreaClick}>
-        {!videoReady && <div className="video-loading-cover" />}
+        <div className={`video-loading-cover${videoReady ? " is-ready" : ""}`} />
         <div className="video-chips-top">
           <ProfileChip
             profile={profile}
@@ -446,14 +446,7 @@ function EmberMark() {
       style={{ flexShrink: 0, marginRight: 8 }}
       aria-hidden="true"
     >
-      <defs>
-        <radialGradient id="ember-glow-player" cx="50%" cy="88%" r="55%">
-          <stop offset="0%" stopColor="#FF6B1F" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#FF6B1F" stopOpacity="0" />
-        </radialGradient>
-      </defs>
       <rect width="20" height="20" rx="4" fill="#141210" />
-      <rect width="20" height="20" rx="4" fill="url(#ember-glow-player)" />
       <path d="M7.5 6.5 L14 10 L7.5 13.5 Z" fill="#C9501A" />
     </svg>
   );

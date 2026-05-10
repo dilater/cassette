@@ -9,9 +9,7 @@ import FilterChips from "../components/library/FilterChips";
 import ContinueWatching from "../components/library/ContinueWatching";
 import PosterGrid from "../components/library/PosterGrid";
 import SeriesView from "../components/library/SeriesView";
-import WatchedFolders from "../components/library/WatchedFolders";
 import MetadataEditor from "../components/library/MetadataEditor";
-import DownloadsView from "../components/library/DownloadsView";
 import ArchivingView from "./ArchivingView";
 import SettingsView from "./SettingsView";
 import EmptyState from "./EmptyState";
@@ -85,33 +83,6 @@ function groupByTopLevel(items: LibraryItem[], watchedFolders: WatchedFolder[]):
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function makeLibraryItemFromPath(filePath: string): LibraryItem {
-  const filename = filePath.replace(/\\/g, "/").split("/").pop() ?? filePath;
-  return {
-    id: -1,
-    path: filePath,
-    filename,
-    parsed_title: null,
-    parsed_year: null,
-    parsed_season: null,
-    parsed_episode: null,
-    series_id: null,
-    resolution: null,
-    last_played_at: null,
-    resume_position_seconds: null,
-    duration_seconds: null,
-    poster_path: null,
-    needs_review: false,
-    series_title: null,
-    metadata_locked: false,
-    is_favourite: false,
-    user_rating: null,
-    watch_status: "unwatched",
-    watched_at: null,
-    notes: null,
-  };
 }
 
 export default function LibraryView({ onPlay }: Props) {
@@ -260,10 +231,6 @@ export default function LibraryView({ onPlay }: Props) {
         <div className="library-body">
           <ArchivingView />
         </div>
-      ) : filter === "downloads" ? (
-        <div className="library-body">
-          <DownloadsView onPlay={(path) => onPlay(makeLibraryItemFromPath(path))} />
-        </div>
       ) : filter === "collection" ? (
         <div className="library-body">
           <CollectionView onPlay={onPlay} onEdit={setEditingGroup} />
@@ -295,11 +262,6 @@ export default function LibraryView({ onPlay }: Props) {
               {needsReview.length > 0 && (
                 <NeedsReviewSection items={needsReview} onTagged={() => { loadData(); fetchMetadataAll().catch(() => {}); }} />
               )}
-              <WatchedFolders
-                folders={folders}
-                allItems={items}
-                onFolderAdded={loadData}
-              />
             </>
           )}
         </div>
@@ -525,14 +487,7 @@ function EmberMark() {
       style={{ flexShrink: 0, marginRight: 8 }}
       aria-hidden="true"
     >
-      <defs>
-        <radialGradient id="ember-glow-lib" cx="50%" cy="88%" r="55%">
-          <stop offset="0%" stopColor="#FF6B1F" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#FF6B1F" stopOpacity="0" />
-        </radialGradient>
-      </defs>
       <rect width="20" height="20" rx="4" fill="#141210" />
-      <rect width="20" height="20" rx="4" fill="url(#ember-glow-lib)" />
       <path d="M7.5 6.5 L14 10 L7.5 13.5 Z" fill="#C9501A" />
     </svg>
   );

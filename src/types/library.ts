@@ -44,7 +44,7 @@ export interface TrackInfo {
 
 export type VisualProfile = "film" | "anime" | "low-power" | "none";
 
-export type LibraryFilter = "all" | "film" | "tv" | "collection" | "downloads" | "archiving" | "settings";
+export type LibraryFilter = "all" | "film" | "tv" | "collection" | "archiving" | "settings";
 
 export type DiscState =
   | { kind: "waiting" }
@@ -52,23 +52,6 @@ export type DiscState =
   | { kind: "archiving"; drive: string; label: string; bytes_read: number; bytes_total: number; speed_mbps: number; eta_seconds: number; output_path: string }
   | { kind: "complete"; label: string; iso_path: string }
   | { kind: "error"; label: string; message: string; drive: string };
-
-export type TorrentState = "downloading" | "paused" | "complete" | "error";
-
-export interface TorrentInfo {
-  id: number;
-  name: string;
-  state: TorrentState;
-  progress_pct: number;
-  down_speed_kbps: number;
-  up_speed_kbps: number;
-  peers: number;
-  eta_seconds: number | null;
-  size_bytes: number;
-  downloaded_bytes: number;
-  error_message: string | null;
-  file_paths: string[];
-}
 
 // Items grouped by parent directory
 export interface FolderGroup {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   getTraktCredentials,
   setTraktCredentials,
@@ -8,7 +9,14 @@ import {
   traktStartDeviceAuth,
   traktSyncNow,
   letterboxdExport,
+  listWatchedFolders,
+  addWatchedFolder,
+  removeWatchedFolder,
+  getTmdbKey,
+  setTmdbKey,
+  fetchMetadataAll,
 } from "../lib/tauri";
+import type { WatchedFolder } from "../types/library";
 import AboutView from "./AboutView";
 
 function formatTs(ts: number): string {
@@ -27,6 +35,131 @@ interface DeviceAuth {
   user_code: string;
   verification_url: string;
   expires_in: number;
+}
+
+function SourcesSection() {
+  const [folders, setFolders] = useState<WatchedFolder[]>([]);
+  const [tmdbKey, setTmdbKeyState] = useState("");
+  const [tmdbStatus, setTmdbStatus] = useState<string | null>(null);
+
+  async function load() {
+    const f = await listWatchedFolders();
+    setFolders(f);
+  }
+
+  useEffect(() => {
+    load();
+    getTmdbKey().then((k) => { if (k) setTmdbKeyState(k); });
+  }, []);
+
+  async function handleAddFolder() {
+    const selected = await open({ directory: true, multiple: false });
+    if (!selected) return;
+    const path = typeof selected === "string" ? selected : selected[0];
+    if (!path) return;
+    await addWatchedFolder(path);
+    load();
+    fetchMetadataAll().catch(() => {});
+  }
+
+  async function handleRemoveFolder(path: string) {
+    await removeWatchedFolder(path);
+    load();
+  }
+
+  async function handleSaveTmdbKey() {
+    await setTmdbKey(tmdbKey);
+    setTmdbStatus("Key saved.");
+    setTimeout(() => setTmdbStatus(null), 2000);
+  }
+
+  async function handleRefreshMetadata() {
+    setTmdbStatus("Starting...");
+    try {
+      const count = await fetchMetadataAll();
+      setTmdbStatus(`Refreshing ${count} titles...`);
+      setTimeout(() => setTmdbStatus(null), 5000);
+    } catch {
+      setTmdbStatus("No API key set.");
+      setTimeout(() => setTmdbStatus(null), 3000);
+    }
+  }
+
+  return (
+    <section className="settings-section">
+      <h2 className="settings-section-title">Sources</h2>
+
+      <div className="sources-folder-list">
+        {folders.map((f) => (
+          <div key={f.id} className="sources-folder-row">
+            <FolderIcon />
+            <span className="sources-folder-path mono">{f.path}</span>
+            <button
+              className="sources-remove-btn"
+              onClick={() => handleRemoveFolder(f.path)}
+              aria-label="Remove folder"
+            >
+              <RemoveIcon />
+            </button>
+          </div>
+        ))}
+        <button className="sources-add-row" onClick={handleAddFolder}>
+          <PlusIcon />
+          <span>Add folder</span>
+        </button>
+      </div>
+
+      <div className="settings-divider" style={{ margin: "16px 0" }} />
+
+      <label className="settings-label">TMDb API key</label>
+      <div className="sources-tmdb-row">
+        <input
+          className="settings-input mono"
+          type="password"
+          value={tmdbKey}
+          onChange={(e) => setTmdbKeyState(e.target.value)}
+          placeholder="Paste your API key"
+          spellCheck={false}
+        />
+        <button className="settings-btn-secondary" onClick={handleSaveTmdbKey}>
+          Apply key
+        </button>
+      </div>
+      <div className="settings-action-row" style={{ marginTop: 8 }}>
+        <button className="settings-btn-secondary" onClick={handleRefreshMetadata}>
+          Refresh metadata
+        </button>
+        {tmdbStatus && <span className="settings-result-text">{tmdbStatus}</span>}
+      </div>
+      <p className="settings-hint" style={{ marginTop: 6 }}>
+        Get a free key at <span className="mono">themoviedb.org/settings/api</span>
+      </p>
+    </section>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
+      <path d="M1.5 3.5A1 1 0 012.5 2.5H6l1.5 1.5H13.5a1 1 0 011 1V12a1 1 0 01-1 1h-11a1 1 0 01-1-1V3.5z" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  );
+}
+
+function RemoveIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  );
 }
 
 export default function SettingsView() {
@@ -129,6 +262,10 @@ export default function SettingsView() {
       {error && (
         <div className="settings-error">{error}</div>
       )}
+
+      <SourcesSection />
+
+      <div className="settings-divider" />
 
       <section className="settings-section">
         <h2 className="settings-section-title">Trakt</h2>

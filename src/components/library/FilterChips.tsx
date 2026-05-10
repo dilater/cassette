@@ -11,7 +11,6 @@ const CHIPS: { label: string; value: LibraryFilter }[] = [
   { label: "Films", value: "film" },
   { label: "TV", value: "tv" },
   { label: "Collection", value: "collection" },
-  { label: "Downloads", value: "downloads" },
   { label: "Archiving", value: "archiving" },
 ];
 

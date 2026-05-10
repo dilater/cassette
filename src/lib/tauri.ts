@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { LibraryItem, WatchedFolder, LibraryFilter, TrackInfo, VisualProfile, TorrentInfo } from "../types/library";
+import type { LibraryItem, WatchedFolder, LibraryFilter, TrackInfo, VisualProfile } from "../types/library";
 
 // Favourites and collection
 export const toggleFavourite = (fileId: number) => invoke<boolean>("toggle_favourite", { fileId });
@@ -110,19 +110,6 @@ export const setMetadataLocked = (fileId: number, locked: boolean) =>
 // Video child window
 export const setVideoVisible = (visible: boolean) => invoke<void>("set_video_visible", { visible });
 export const forceVideoResize = () => invoke<void>("force_video_resize");
-
-// Torrents
-export const getDownloadFolder = () => invoke<string>("get_download_folder");
-export const setDownloadFolder = (path: string) => invoke<void>("set_download_folder", { path });
-export const torrentAddMagnet = (magnet: string) => invoke<number>("torrent_add_magnet", { magnet });
-export const torrentAddFile = (bytes: number[]) => invoke<number>("torrent_add_file", { bytes });
-export const torrentPause = (id: number) => invoke<void>("torrent_pause", { id });
-export const torrentResume = (id: number) => invoke<void>("torrent_resume", { id });
-export const torrentRemove = (id: number, deleteFiles: boolean) =>
-  invoke<void>("torrent_remove", { id, deleteFiles });
-export const torrentList = () => invoke<TorrentInfo[]>("torrent_list");
-export const torrentGetFilePath = (id: number, fileIndex: number) =>
-  invoke<string | null>("torrent_get_file_path", { id, fileIndex });
 
 // Disc archiving
 import type { DiscState } from "../types/library";

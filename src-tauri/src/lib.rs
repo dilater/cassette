@@ -2,7 +2,6 @@ mod commands;
 mod mpv;
 mod library;
 mod metadata;
-mod torrents;
 mod disc;
 mod trakt;
 
@@ -160,36 +159,6 @@ pub fn run() {
             app.manage(pending_seek);
             app.manage(Mutex::new(WatcherHandle(watcher)));
 
-            // ── torrent session ───────────────────────────────────────────────
-            let torrent_session_state = commands::TorrentSessionState(
-                tokio::sync::RwLock::new(None)
-            );
-            app.manage(torrent_session_state);
-
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let download_dir = match app_handle.path().app_data_dir() {
-                    Ok(data_dir) => {
-                        let settings = metadata::load_settings(&data_dir);
-                        match settings.download_folder {
-                            Some(p) => std::path::PathBuf::from(p),
-                            None => data_dir.join("downloads"),
-                        }
-                    }
-                    Err(_) => return,
-                };
-                match torrents::start_session(download_dir).await {
-                    Ok(session) => {
-                        if let Some(state) = app_handle.try_state::<commands::TorrentSessionState>() {
-                            *state.0.write().await = Some(session);
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("torrent session failed to start: {e}");
-                    }
-                }
-            });
-
             // ── disc archiving ────────────────────────────────────────────────
             let disc_state: disc::SharedDiscState =
                 Arc::new(Mutex::new(disc::DiscState::Waiting));
@@ -291,15 +260,6 @@ pub fn run() {
             commands::get_cli_file,
             commands::set_video_visible,
             commands::force_video_resize,
-            commands::get_download_folder,
-            commands::set_download_folder,
-            commands::torrent_add_magnet,
-            commands::torrent_add_file,
-            commands::torrent_pause,
-            commands::torrent_resume,
-            commands::torrent_remove,
-            commands::torrent_list,
-            commands::torrent_get_file_path,
             commands::scan_film_durations,
             commands::disc_get_state,
             commands::disc_dismiss,
