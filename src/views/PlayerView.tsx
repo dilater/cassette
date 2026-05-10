@@ -447,7 +447,7 @@ function EmberMark() {
       aria-hidden="true"
     >
       <rect width="20" height="20" rx="4" fill="#141210" />
-      <path d="M7.5 6.5 L14 10 L7.5 13.5 Z" fill="#C9501A" />
+      <path d="M7.25 6.15 L14.4 10 L7.25 13.85 Z" fill="#C9501A" />
     </svg>
   );
 }

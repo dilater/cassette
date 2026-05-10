@@ -1072,7 +1072,7 @@ input {
   letter-spacing: 0;
 }
 
-/* Play/pause — contained ember presence, no outward glow */
+/* Play/pause — orange triangle, no aura. Icon brightens on hover/paused. */
 .play-pause-btn {
   width: 78px;
   height: 78px;
@@ -1081,23 +1081,22 @@ input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background var(--motion-standard);
-  color: var(--light-primary);
-  background: rgba(201, 80, 26, 0.12);
+  transition: color var(--motion-standard), transform 80ms ease-in;
+  color: var(--ember-mid);
+  background: transparent;
   position: relative;
 }
 
 .play-pause-btn.is-paused {
-  background: rgba(201, 80, 26, 0.22);
+  color: var(--ember-core);
 }
 
 .play-pause-btn:hover {
-  background: rgba(201, 80, 26, 0.28);
+  color: var(--ember-core);
 }
 
 .play-pause-btn:active {
   transform: scale(0.95);
-  transition: transform 80ms ease-in;
 }
 
 /* ── transport section ───────────────────────────────────────────────────────── */

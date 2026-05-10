@@ -40,7 +40,7 @@ export default function SkipOverlay({ paused, visible }: Props) {
 function PlayIcon() {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 5.14v14l11-7-11-7z" />
+      <path d="M7.6 4.45 V19.85 L19.7 12.15 Z" />
     </svg>
   );
 }
