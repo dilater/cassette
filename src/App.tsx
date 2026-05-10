@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { getCurrentWindow, PhysicalSize, PhysicalPosition } from "@tauri-apps/api/window";
-import { playFile, stop, getWindowState, saveWindowState, getCliFile, setVideoVisible, forceVideoResize, listWatchedFolders } from "./lib/tauri";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { playFile, stop, saveWindowState, getCliFile, setVideoVisible, forceVideoResize, listWatchedFolders } from "./lib/tauri";
 import type { LibraryItem } from "./types/library";
 import LibraryView from "./views/LibraryView";
 import PlayerView from "./views/PlayerView";
@@ -18,13 +18,10 @@ export default function App() {
   // Restore window size/position and check for CLI-launched file
   useEffect(() => {
     async function init() {
-      const [w, h, x, y] = await getWindowState();
-      if (w > 0 && h > 0) {
-        await appWindow.setSize(new PhysicalSize(w, h));
-      }
-      if (x >= 0 && y >= 0) {
-        await appWindow.setPosition(new PhysicalPosition(x, y));
-      }
+      // Always boot maximised — saved width/height could exceed the current
+      // monitor (multi-monitor moves, resolution changes) and the user expects
+      // a media app to fill the screen by default.
+      await appWindow.maximize();
       await appWindow.show();
 
       // First-run detection: no watched folders = show onboarding

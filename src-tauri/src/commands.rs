@@ -564,6 +564,64 @@ pub async fn get_scrub_thumb(
     Ok(Some(format!("data:image/jpeg;base64,{}", b64_encode(&bytes))))
 }
 
+/// Continue Watching thumbnails — higher resolution (480px wide) than scrub
+/// thumbs because they render larger in the UI. Cached in cw_thumbs/<id>.jpg
+/// keyed by file id; replaced whenever the resume position changes by 30s+.
+#[tauri::command]
+pub async fn get_cw_thumb(
+    file_id: i64,
+    path: String,
+    position_secs: f64,
+    app: tauri::AppHandle,
+) -> Result<Option<String>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let thumb_dir = data_dir.join("metadata_cache").join("cw_thumbs");
+    std::fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
+
+    // Bucket position to nearest 30s so the thumb is regenerated when the user
+    // resumes much further into the file.
+    let bucket = (position_secs as i64 / 30) * 30;
+    let thumb_path = thumb_dir.join(format!("{}_{}.jpg", file_id, bucket));
+
+    if !thumb_path.exists() {
+        // Clean up stale thumbs for this file id from older buckets
+        if let Ok(entries) = std::fs::read_dir(&thumb_dir) {
+            let prefix = format!("{}_", file_id);
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.starts_with(&prefix) && entry.path() != thumb_path {
+                        std::fs::remove_file(entry.path()).ok();
+                    }
+                }
+            }
+        }
+
+        let ffmpeg = find_ffmpeg(&app);
+        let status = tokio::process::Command::new(&ffmpeg)
+            .args([
+                "-ss", &bucket.to_string(),
+                "-i", &path,
+                "-frames:v", "1",
+                "-q:v", "2",
+                "-vf", "scale=480:-1",
+                "-y",
+                thumb_path.to_str().unwrap_or_default(),
+            ])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .status()
+            .await;
+        match status {
+            Ok(s) if s.success() && thumb_path.exists() => {}
+            _ => return Ok(None),
+        }
+    }
+
+    let bytes = std::fs::read(&thumb_path).map_err(|e| e.to_string())?;
+    Ok(Some(format!("data:image/jpeg;base64,{}", b64_encode(&bytes))))
+}
+
 fn b64_encode(data: &[u8]) -> String {
     const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity((data.len() + 2) / 3 * 4);

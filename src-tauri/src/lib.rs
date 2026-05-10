@@ -233,6 +233,7 @@ pub fn run() {
             commands::update_progress,
             commands::init_scrub_thumbs,
             commands::get_scrub_thumb,
+            commands::get_cw_thumb,
             commands::get_series_track_pref,
             commands::set_series_track_pref,
             commands::search_tmdb_titles,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { LibraryItem } from "../../types/library";
 import { posterColor, formatMinutesLeft } from "../../lib/format";
-import { getScrubThumb } from "../../lib/tauri";
+import { getCwThumb } from "../../lib/tauri";
 
 interface Props {
   items: LibraryItem[];
@@ -38,7 +38,7 @@ function CwCard({ item, onPlay }: { item: LibraryItem; onPlay: (item: LibraryIte
 
   useEffect(() => {
     if (pos < 5) return;
-    getScrubThumb(item.id, item.path, pos).then((src) => {
+    getCwThumb(item.id, item.path, pos).then((src) => {
       if (src) setThumbSrc(src);
     }).catch(() => {});
   }, [item.id, item.path, pos]);

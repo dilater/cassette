@@ -121,9 +121,19 @@ export default function LibraryView({ onPlay }: Props) {
   // Rescan on mount so new files are picked up automatically
   useEffect(() => { handleRescan(); }, []);
 
+  // Debounce metadata-ready reloads — TMDb fetches fire one event per item,
+  // and reloading the entire library list on every event is the dominant
+  // performance cost when the metadata queue is busy.
   useEffect(() => {
-    const unlisten = listen("library:metadata-ready", () => { loadData(); });
-    return () => { unlisten.then((f) => f()); };
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unlisten = listen("library:metadata-ready", () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { loadData(); }, 800);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unlisten.then((f) => f());
+    };
   }, []);
 
   const continueWatching = useMemo(() => {

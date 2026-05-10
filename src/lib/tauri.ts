@@ -64,6 +64,8 @@ export const initScrubThumbs = (fileId: number, filePath: string) =>
   invoke<void>("init_scrub_thumbs", { fileId, path: filePath });
 export const getScrubThumb = (fileId: number, filePath: string, positionSecs: number) =>
   invoke<string | null>("get_scrub_thumb", { fileId, path: filePath, positionSecs });
+export const getCwThumb = (fileId: number, filePath: string, positionSecs: number) =>
+  invoke<string | null>("get_cw_thumb", { fileId, path: filePath, positionSecs });
 
 export interface SeriesTrackPref { audio_lang: string | null; audio_track_index: number | null; }
 export const getSeriesTrackPref = (seriesId: number) =>
