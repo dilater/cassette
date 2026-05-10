@@ -12,7 +12,7 @@ use libmpv2::Mpv;
 use mpv::{MpvWrapper, SharedMpv};
 use library::SharedDb;
 use library::scanner::start_watcher;
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
 // Holds the notify watcher so it stays alive for the process lifetime.

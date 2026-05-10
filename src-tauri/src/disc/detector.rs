@@ -7,8 +7,9 @@ pub struct DiscInfo {
 #[cfg(target_os = "windows")]
 pub fn scan_optical_drives() -> Vec<DiscInfo> {
     use windows_sys::Win32::Storage::FileSystem::{
-        GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumeInformationW, DRIVE_CDROM,
+        GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumeInformationW,
     };
+    const DRIVE_CDROM: u32 = 5; // stable Win32 constant
 
     let mut result = Vec::new();
     for code in b'A'..=b'Z' {

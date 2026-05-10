@@ -1,0 +1,5 @@
+# Linker configuration is handled dynamically in build.rs via use_bundled_lld().
+# That function emits cargo:rustc-link-arg=-fuse-ld=lld and
+# cargo:rustc-link-arg=-B<sysroot>/lib/rustlib/<target>/bin/gcc-ld
+# so ld.lld.exe from the bundled Rust toolchain is used instead of MinGW ld.
+# No static overrides needed here.

@@ -916,7 +916,6 @@ pub async fn torrent_get_file_path(
     Ok(crate::torrents::manager::get_file_path(sess, id as usize, file_index))
 }
 
-#[tauri::command]
 // ── disc archiving ────────────────────────────────────────────────────────────
 
 #[tauri::command]
