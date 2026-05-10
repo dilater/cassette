@@ -8,6 +8,8 @@ use crate::disc::{SharedDiscState, DiscCancelFlag, DiscState};
 use crate::trakt;
 use std::collections::HashSet;
 use std::sync::atomic::Ordering;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
 fn find_ffmpeg(app: &tauri::AppHandle) -> String {
     // Prefer the bundled binary in resources/, fall back to PATH.
@@ -1183,6 +1185,7 @@ pub async fn scan_film_durations(app: tauri::AppHandle, db: State<'_, SharedDb>)
     for (file_id, path) in films {
         let output = tokio::process::Command::new(&ffprobe)
             .args(["-v", "quiet", "-print_format", "json", "-show_format", &path])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
             .output()
             .await;
         let Ok(out) = output else { continue };
@@ -1208,6 +1211,7 @@ pub async fn scan_film_durations(app: tauri::AppHandle, db: State<'_, SharedDb>)
 pub fn open_url(url: String) -> Result<(), String> {
     std::process::Command::new("cmd")
         .args(["/C", "start", "", &url])
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
