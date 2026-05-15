@@ -195,7 +195,9 @@ export default function LibraryView({ onPlay }: Props) {
         onDoubleClick={() => appWindow.toggleMaximize()}
       >
         <EmberMark />
-        <span className="title-bar-label">Library</span>
+        <span className="title-bar-wordmark">Cassette</span>
+        <span className="title-bar-sep">·</span>
+        <span className="title-bar-section">Library</span>
         <button
           className={`library-refresh-btn${scanning ? " scanning" : ""}`}
           onClick={handleRescan}
@@ -500,7 +502,7 @@ function EmberMark() {
       width="20"
       height="20"
       viewBox="0 0 20 20"
-      style={{ flexShrink: 0, marginRight: 8 }}
+      style={{ flexShrink: 0, marginRight: 6 }}
       aria-hidden="true"
     >
       <rect width="20" height="20" rx="4" fill="#141210" />

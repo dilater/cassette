@@ -26,8 +26,8 @@ export default function AboutView() {
     <div className="about-view">
       <div className="about-identity">
         <CassetteGlyph className="about-glyph" />
-        <div className="about-name">Cassette</div>
-        <div className="about-version mono">v{version}</div>
+        <div className="about-name">Cassette Community Edition</div>
+        <div className="about-version mono">{version} Beta</div>
         <div className="about-tagline">Intentional, premium home media system.</div>
       </div>
 

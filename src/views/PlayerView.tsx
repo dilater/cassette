@@ -407,6 +407,8 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
       >
         <button className="back-to-library" data-tauri-no-drag onClick={onBack}>library</button>
         <EmberMark />
+        <span className="title-bar-wordmark">Cassette</span>
+        <span className="title-bar-sep">·</span>
         <span className="title-bar-label mono">{currentItem.filename}</span>
         <WindowControls />
       </div>
@@ -479,7 +481,7 @@ const EmberMark = memo(function EmberMark() {
       width="20"
       height="20"
       viewBox="0 0 20 20"
-      style={{ flexShrink: 0, marginRight: 8 }}
+      style={{ flexShrink: 0, marginRight: 6 }}
       aria-hidden="true"
     >
       <rect width="20" height="20" rx="4" fill="#141210" />
