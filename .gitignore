@@ -1,6 +1,7 @@
 node_modules/
 dist/
 src-tauri/target/
+src-tauri/target-test-0.1.1-test/
 src-tauri/gen/
 metadata_cache/
 .env
