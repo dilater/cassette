@@ -17,7 +17,8 @@
         "height": 800,
         "decorations": false,
         "transparent": true,
-        "visible": false
+        "visible": false,
+        "backgroundColor": [11, 11, 12, 255]
       }
     ],
     "security": {

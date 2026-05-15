@@ -1,4 +1,4 @@
-@font-face {
+﻿@font-face {
   font-family: "Inter";
   src: url("/fonts/Inter-Regular.ttf") format("truetype");
   font-weight: 100 900;
@@ -513,7 +513,7 @@ input {
 }
 
 .folder-row:hover {
-  background: var(--bg-elevated);
+  background: rgba(107, 42, 15, 0.1);
 }
 
 .folder-icon {
@@ -559,8 +559,8 @@ input {
   width: 100%;
   height: 100%;
   background: transparent;
-  border-radius: var(--radius-lg);
-  border: 0.5px solid var(--border-frame);
+  border-radius: 0;
+  border: none;
   overflow: hidden;
   position: relative;
 }
@@ -656,8 +656,8 @@ input {
   width: 100%;
   height: 100%;
   background: transparent;
-  border-radius: var(--radius-lg);
-  border: 0.5px solid var(--border-frame);
+  border-radius: 0;
+  border: none;
   overflow: hidden;
   position: relative;
 }
@@ -871,8 +871,8 @@ input {
 }
 
 .popover-track-btn:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  background: rgba(107, 42, 15, 0.1);
+  color: var(--light-primary);
 }
 
 .popover-track-btn.active {
@@ -1082,8 +1082,9 @@ input {
   letter-spacing: 0;
 }
 
-/* Play/pause — white triangle. Ember warmth is the surrounding button bg
-   on hover and when paused. Icon glyph itself stays white at every state. */
+/* Play/pause — white triangle only. No ring, no circle, no halo, no shadow.
+   The hit area is 78px but has no visible shape. On hover the icon brightens.
+   No orange ever appears on or around this button. */
 .play-pause-btn {
   width: 78px;
   height: 78px;
@@ -1092,18 +1093,18 @@ input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background var(--motion-standard), transform 80ms ease-in;
-  color: var(--light-primary);  /* white triangle, always */
-  background: rgba(201, 80, 26, 0.14);
+  transition: color var(--motion-standard), transform 80ms ease-in;
+  color: rgba(242, 235, 224, 0.72);
+  background: none;
   position: relative;
 }
 
 .play-pause-btn.is-paused {
-  background: rgba(255, 107, 31, 0.26);
+  color: var(--light-primary);
 }
 
 .play-pause-btn:hover {
-  background: rgba(255, 107, 31, 0.32);
+  color: var(--light-primary);
 }
 
 .play-pause-btn:active {
@@ -1511,7 +1512,7 @@ input {
 }
 
 .episode-row:hover {
-  background: var(--bg-elevated);
+  background: rgba(107, 42, 15, 0.1);
 }
 
 .episode-label {
@@ -1586,18 +1587,19 @@ input {
 
 /* ── film duration badge ──────────────────────────────────────────────────────── */
 
+/* Duration sits bottom-right, over the gradient. Star is top-left, edit top-right. */
 .poster-duration {
   position: absolute;
-  top: 7px;
-  right: 7px;
+  bottom: 9px;
+  right: 9px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--color-text-secondary);
+  color: rgba(242, 235, 224, 0.9);
   background: rgba(0, 0, 0, 0.55);
   padding: 2px 5px;
   border-radius: 4px;
   pointer-events: none;
-  z-index: 5;
+  z-index: 6;
   letter-spacing: 0.02em;
 }
 
@@ -1945,10 +1947,11 @@ input {
 
 /* ── Star favourite button ───────────────────────────────────────────────────── */
 
+/* Star lives at top-LEFT; edit button lives at top-RIGHT. They never overlap. */
 .star-btn {
   position: absolute;
   top: 7px;
-  right: 7px;
+  left: 7px;
   width: 28px;
   height: 28px;
   display: flex;
@@ -1961,7 +1964,7 @@ input {
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
-  z-index: 3;
+  z-index: 10;
 }
 .poster-card:hover .star-btn,
 .star-btn.starred {
@@ -2021,7 +2024,7 @@ input {
   width: 100%;
   text-align: left;
 }
-.ctx-item:hover { background: var(--bg-hover); }
+.ctx-item:hover { background: rgba(107, 42, 15, 0.12); color: var(--light-primary); }
 .ctx-item.danger { color: rgba(255, 90, 90, 0.85); }
 .ctx-divider { height: 1px; background: var(--border-subtle); margin: 4px 0; }
 .ctx-rating-row {
@@ -2092,7 +2095,7 @@ input {
   border-radius: var(--radius-md);
   cursor: pointer;
 }
-.fav-episode-row:hover { background: var(--bg-elevated); }
+.fav-episode-row:hover { background: rgba(107, 42, 15, 0.1); }
 .fav-ep-thumb {
   width: 48px;
   aspect-ratio: 2/3;
@@ -2121,6 +2124,45 @@ input {
   font-family: var(--font-mono);
   color: var(--accent-active);
   white-space: nowrap;
+}
+
+/* File-missing states — shown in Collection when source drive is offline */
+.poster-card.file-missing {
+  cursor: default;
+  opacity: 0.65;
+}
+.poster-card.file-missing:hover .poster-image img,
+.poster-card.file-missing:hover .poster-placeholder {
+  filter: none;
+}
+.missing-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  color: rgba(242, 235, 224, 0.55);
+  background: rgba(10, 9, 8, 0.78);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 8;
+}
+.fav-episode-row.file-missing {
+  cursor: default;
+  opacity: 0.6;
+}
+.fav-ep-missing {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 8px;
 }
 
 /* ── Needs-review section ────────────────────────────────────────────────────── */

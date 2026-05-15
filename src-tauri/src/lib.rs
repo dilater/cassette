@@ -27,10 +27,48 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // ── database ──────────────────────────────────────────────────────
-            let data_dir = app.path().app_data_dir()
-                .map_err(|e| format!("app_data_dir: {e}"))?;
+            // Store user data at %APPDATA%\Cassette\ — a plain, human-readable
+            // path that the NSIS uninstaller does NOT know about (it only
+            // deletes the app-identifier directory, com.dilater.cassette).
+            // This guarantees library.db, metadata_cache/ and settings.json
+            // survive every reinstall without exception.
+            let data_dir = std::env::var("APPDATA")
+                .map(|p| std::path::PathBuf::from(p).join("Cassette"))
+                .unwrap_or_else(|_| {
+                    app.path().app_data_dir()
+                        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                });
             std::fs::create_dir_all(&data_dir)
                 .map_err(|e| format!("create data dir: {e}"))?;
+
+            // One-time migration: if old identifier path has a library.db but
+            // the new path does not, copy all files across silently.
+            if let Ok(old_dir) = app.path().app_data_dir() {
+                let old_db = old_dir.join("library.db");
+                let new_db = data_dir.join("library.db");
+                if old_db.exists() && !new_db.exists() {
+                    for entry in std::fs::read_dir(&old_dir).into_iter().flatten().flatten() {
+                        let dest = data_dir.join(entry.file_name());
+                        if entry.path().is_file() {
+                            std::fs::copy(entry.path(), &dest).ok();
+                        } else if entry.path().is_dir() {
+                            // Recursively copy metadata_cache/ etc.
+                            if let Ok(sub) = std::fs::read_dir(entry.path()) {
+                                std::fs::create_dir_all(&dest).ok();
+                                for sub_entry in sub.flatten() {
+                                    if sub_entry.path().is_file() {
+                                        std::fs::copy(
+                                            sub_entry.path(),
+                                            dest.join(sub_entry.file_name()),
+                                        ).ok();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             let db_path = data_dir.join("library.db");
             let conn = library::db::open(&db_path)
                 .map_err(|e| format!("db open: {e}"))?;
@@ -44,6 +82,12 @@ pub fn run() {
                 init.set_property("gpu-api", "d3d11")?;
                 init.set_property("video-sync", "display-resample")?;
                 init.set_property("interpolation", false)?;
+                // Buffering: keep up to 30 s ahead, max 1 GiB demuxer buffer.
+                // Prevents stutters on large 4K files and network shares.
+                init.set_property("cache", true)?;
+                init.set_property("cache-secs", 30.0f64)?;
+                init.set_property("demuxer-max-bytes", 1_073_741_824i64)?;
+                init.set_property("demuxer-readahead-secs", 30.0f64)?;
                 Ok(())
             })
             .map_err(|e| format!("mpv init: {e}"))?;

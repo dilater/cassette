@@ -1,4 +1,4 @@
-use tauri::{State, Manager, Emitter};
+﻿use tauri::{State, Manager, Emitter};
 use crate::mpv::{SharedMpv, PlaybackState};
 use crate::mpv::controller::{self, TrackInfo};
 use crate::library::{SharedDb, db, scanner};
@@ -26,6 +26,18 @@ fn find_ffprobe(app: &tauri::AppHandle) -> String {
         .filter(|p| p.exists())
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| "ffprobe".to_string())
+}
+
+/// Returns the stable user-data directory: %APPDATA%\Cassette\
+/// This path is invisible to the NSIS uninstaller, so library.db,
+/// metadata_cache/, settings.json and trakt.json survive every reinstall.
+fn cassette_data_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
+    std::env::var("APPDATA")
+        .map(|p| std::path::PathBuf::from(p).join("Cassette"))
+        .unwrap_or_else(|_| {
+            app.path().app_data_dir()
+                .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        })
 }
 
 // ── playback ──────────────────────────────────────────────────────────────────
@@ -112,16 +124,14 @@ pub fn apply_visual_profile(profile: String, shared: State<SharedMpv>, app: taur
 
 #[tauri::command]
 pub fn get_global_profile(app: tauri::AppHandle) -> String {
-    let data_dir = app.path().app_data_dir().ok();
-    data_dir
-        .map(|d| metadata::load_settings(&d))
-        .and_then(|s| s.global_profile)
-        .unwrap_or_else(|| "film".to_string())
+    metadata::load_settings(&cassette_data_dir(&app))
+        .global_profile
+        .unwrap_or_else(|| "low-power".to_string())
 }
 
 #[tauri::command]
 pub fn set_global_profile(profile: String, app: tauri::AppHandle) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let mut settings = metadata::load_settings(&data_dir);
     settings.global_profile = Some(profile);
     metadata::save_settings(&data_dir, &settings);
@@ -130,10 +140,8 @@ pub fn set_global_profile(profile: String, app: tauri::AppHandle) -> Result<(), 
 
 #[tauri::command]
 pub fn get_subtitle_font(app: tauri::AppHandle) -> String {
-    let data_dir = app.path().app_data_dir().ok();
-    data_dir
-        .map(|d| metadata::load_settings(&d))
-        .and_then(|s| s.subtitle_font)
+    metadata::load_settings(&cassette_data_dir(&app))
+        .subtitle_font
         .unwrap_or_else(|| "Default".to_string())
 }
 
@@ -146,7 +154,7 @@ pub fn set_subtitle_font(font: String, shared: State<'_, SharedMpv>, app: tauri:
             guard.0.set_property("sub-font", font.as_str()).map_err(|e| e.to_string())?;
         }
     }
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let mut settings = metadata::load_settings(&data_dir);
     settings.subtitle_font = if font == "Default" { None } else { Some(font) };
     metadata::save_settings(&data_dir, &settings);
@@ -276,10 +284,7 @@ pub fn force_video_resize(video_child: State<'_, VideoChildState>, window: tauri
 
 #[tauri::command]
 pub fn get_window_state(app: tauri::AppHandle) -> (u32, u32, i32, i32) {
-    let data_dir = match app.path().app_data_dir() {
-        Ok(d) => d,
-        Err(_) => return (1200, 800, -1, -1),
-    };
+    let data_dir = cassette_data_dir(&app);
     let s = metadata::load_settings(&data_dir);
     (
         s.window_width.unwrap_or(1200),
@@ -297,7 +302,7 @@ pub fn save_window_state(
     y: i32,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let mut settings = metadata::load_settings(&data_dir);
     settings.window_width = Some(width);
     settings.window_height = Some(height);
@@ -318,7 +323,7 @@ pub fn get_cli_file(cli_file: State<crate::CliFileState>) -> Option<String> {
 
 #[tauri::command]
 pub fn set_tmdb_key(key: String, app: tauri::AppHandle) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let mut settings = metadata::load_settings(&data_dir);
     settings.tmdb_key = if key.is_empty() { None } else { Some(key) };
     metadata::save_settings(&data_dir, &settings);
@@ -327,8 +332,7 @@ pub fn set_tmdb_key(key: String, app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_tmdb_key(app: tauri::AppHandle) -> Option<String> {
-    let data_dir = app.path().app_data_dir().ok()?;
-    metadata::load_settings(&data_dir).tmdb_key
+    metadata::load_settings(&cassette_data_dir(&app)).tmdb_key
 }
 
 #[tauri::command]
@@ -336,7 +340,7 @@ pub async fn fetch_metadata_all(
     app: tauri::AppHandle,
     shared_db: State<'_, SharedDb>,
 ) -> Result<usize, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let api_key = settings.tmdb_key.ok_or("No TMDb API key configured")?;
     let cache_dir = data_dir.join("metadata_cache");
@@ -468,7 +472,7 @@ pub async fn init_scrub_thumbs(
     path: String,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let thumb_dir = data_dir.join("metadata_cache").join("thumbs").join(file_id.to_string());
 
     // Skip if already generated (more than a handful of files present)
@@ -532,7 +536,7 @@ pub async fn get_scrub_thumb(
     app: tauri::AppHandle,
 ) -> Result<Option<String>, String> {
     let bucket = (position_secs as i64 / 5) * 5;
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let thumb_dir = data_dir.join("metadata_cache").join("thumbs").join(file_id.to_string());
     std::fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
     let thumb_path = thumb_dir.join(format!("{:06}.jpg", bucket));
@@ -574,7 +578,7 @@ pub async fn get_cw_thumb(
     position_secs: f64,
     app: tauri::AppHandle,
 ) -> Result<Option<String>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let thumb_dir = data_dir.join("metadata_cache").join("cw_thumbs");
     std::fs::create_dir_all(&thumb_dir).map_err(|e| e.to_string())?;
 
@@ -708,7 +712,7 @@ pub async fn search_tmdb_titles(
     query: String,
     app: tauri::AppHandle,
 ) -> Result<Vec<metadata::tmdb::TmdbSearchResult>, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let api_key = settings.tmdb_key.ok_or("No TMDb API key configured")?;
     Ok(metadata::tmdb::search_titles(&query, &api_key).await)
@@ -725,7 +729,7 @@ pub async fn apply_tmdb_override(
     app: tauri::AppHandle,
     shared_db: State<'_, SharedDb>,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let cache_dir = data_dir.join("metadata_cache");
     std::fs::create_dir_all(&cache_dir).ok();
 
@@ -777,7 +781,7 @@ pub async fn apply_local_poster(
 
     let bytes = b64_decode(base64_str).map_err(|e| e.to_string())?;
 
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let cache_dir = data_dir.join("metadata_cache");
     std::fs::create_dir_all(&cache_dir).ok();
 
@@ -1017,8 +1021,7 @@ pub async fn disc_start_archive(
 
 #[tauri::command]
 pub fn get_trakt_credentials(app: tauri::AppHandle) -> serde_json::Value {
-    let data_dir = app.path().app_data_dir().ok();
-    let settings = data_dir.map(|d| metadata::load_settings(&d)).unwrap_or_default();
+    let settings = metadata::load_settings(&cassette_data_dir(&app));
     serde_json::json!({
         "client_id": settings.trakt_client_id.unwrap_or_default(),
         "client_secret": settings.trakt_client_secret.unwrap_or_default()
@@ -1031,7 +1034,7 @@ pub fn set_trakt_credentials(
     client_secret: String,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let mut settings = metadata::load_settings(&data_dir);
     settings.trakt_client_id = if client_id.is_empty() { None } else { Some(client_id) };
     settings.trakt_client_secret = if client_secret.is_empty() { None } else { Some(client_secret) };
@@ -1041,8 +1044,8 @@ pub fn set_trakt_credentials(
 
 #[tauri::command]
 pub fn trakt_get_status(app: tauri::AppHandle) -> serde_json::Value {
-    let data_dir = app.path().app_data_dir().ok();
-    let tokens = data_dir.as_deref().and_then(trakt::load_tokens);
+    let data_dir = cassette_data_dir(&app);
+    let tokens = trakt::load_tokens(&data_dir);
     match tokens {
         Some(t) => serde_json::json!({
             "connected": true,
@@ -1055,14 +1058,14 @@ pub fn trakt_get_status(app: tauri::AppHandle) -> serde_json::Value {
 
 #[tauri::command]
 pub fn trakt_disconnect(app: tauri::AppHandle) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     std::fs::remove_file(data_dir.join("trakt.json")).ok();
     Ok(())
 }
 
 #[tauri::command]
 pub async fn trakt_start_device_auth(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let client_id = settings
         .trakt_client_id
@@ -1087,9 +1090,7 @@ pub async fn trakt_start_device_auth(app: tauri::AppHandle) -> Result<serde_json
             match trakt::poll_device_auth(&device_code, &client_id, &client_secret).await {
                 Ok(Some(tokens)) => {
                     let username = tokens.username.clone().unwrap_or_default();
-                    if let Ok(dir) = app_handle.path().app_data_dir() {
-                        trakt::save_tokens(&dir, &tokens).ok();
-                    }
+                    trakt::save_tokens(&cassette_data_dir(&app_handle), &tokens).ok();
                     app_handle
                         .emit("trakt:auth-complete", serde_json::json!({ "username": username }))
                         .ok();
@@ -1121,7 +1122,7 @@ pub async fn trakt_sync_now(
     shared_db: State<'_, SharedDb>,
     app: tauri::AppHandle,
 ) -> Result<u32, String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let client_id = settings
         .trakt_client_id
@@ -1164,7 +1165,7 @@ pub async fn trakt_finish_watching(
     shared_db: State<'_, SharedDb>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let client_id = match settings.trakt_client_id.filter(|s| !s.is_empty()) {
         Some(id) => id,
@@ -1200,7 +1201,7 @@ pub async fn trakt_push_rating(
     shared_db: State<'_, SharedDb>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let settings = metadata::load_settings(&data_dir);
     let client_id = match settings.trakt_client_id.filter(|s| !s.is_empty()) {
         Some(id) => id,
@@ -1240,7 +1241,7 @@ pub fn letterboxd_export(
         csv.push_str(&format!("\"{title}\",{year},{watched_date},{rating}\n"));
     }
 
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data_dir = cassette_data_dir(&app);
     let out_path = data_dir.join("letterboxd_export.csv");
     std::fs::write(&out_path, csv).map_err(|e| e.to_string())?;
     Ok(out_path.to_string_lossy().to_string())

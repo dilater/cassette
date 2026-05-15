@@ -47,7 +47,7 @@ export default function CardContextMenu({ item, x, y, onClose, onChanged, onEdit
     onChanged();
   }
 
-  async function handleRemoveFav() {
+  async function handleToggleFav() {
     await toggleFavourite(item.id);
     onChanged();
   }
@@ -125,15 +125,14 @@ export default function CardContextMenu({ item, x, y, onClose, onChanged, onEdit
           />
         </div>
 
-        {/* Remove from favourites - only if currently a favourite */}
-        {item.is_favourite && (
-          <>
-            <div className="ctx-divider" />
-            <button className="ctx-item danger" onClick={handleRemoveFav}>
-              Remove from favourites
-            </button>
-          </>
-        )}
+        {/* Favourite toggle — always shown */}
+        <div className="ctx-divider" />
+        <button
+          className={`ctx-item${item.is_favourite ? " danger" : ""}`}
+          onClick={handleToggleFav}
+        >
+          {item.is_favourite ? "Remove from favourites" : "Add to favourites"}
+        </button>
       </div>
     </>
   );

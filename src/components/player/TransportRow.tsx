@@ -1,11 +1,14 @@
+import { forwardRef, useImperativeHandle, useRef, memo } from "react";
 import { togglePause } from "../../lib/tauri";
 import { formatTime } from "../../lib/format";
 import type { LibraryItem } from "../../types/library";
 
+export interface TransportRowHandle {
+  update: (pos: number, dur: number) => void;
+}
+
 interface Props {
   paused: boolean;
-  position: number;
-  duration: number;
   currentItem: LibraryItem | null;
   nextEpisode: LibraryItem | null;
   prevEpisode: LibraryItem | null;
@@ -14,9 +17,23 @@ interface Props {
   onPrev: () => void;
 }
 
-export default function TransportRow({ paused, position, duration, currentItem, nextEpisode, prevEpisode, episodeCount, onNext, onPrev }: Props) {
-  const timecode = `${formatTime(position)} / ${formatTime(duration)}`;
+// TransportRow never re-renders for position/duration changes. The timecode
+// span is updated imperatively via the forwardRef handle. Only paused + episode
+// info cause re-renders, which are rare (not 4 Hz).
+const TransportRow = forwardRef<TransportRowHandle, Props>(function TransportRow(
+  { paused, currentItem, nextEpisode, prevEpisode, episodeCount, onNext, onPrev },
+  ref,
+) {
+  const timecodeRef = useRef<HTMLSpanElement>(null);
   const isTV = currentItem?.parsed_season != null;
+
+  useImperativeHandle(ref, () => ({
+    update(pos: number, dur: number) {
+      if (timecodeRef.current) {
+        timecodeRef.current.textContent = `${formatTime(pos)} / ${formatTime(dur)}`;
+      }
+    },
+  }));
 
   function handlePrev() {
     if (isTV && prevEpisode) onPrev();
@@ -60,13 +77,15 @@ export default function TransportRow({ paused, position, duration, currentItem, 
             <NextIcon />
           </button>
         </div>
-        <span className="transport-timecode">{timecode}</span>
+        <span ref={timecodeRef} className="transport-timecode">00:00 / 00:00</span>
       </div>
     </div>
   );
-}
+});
 
-function NowPlayingInfo({ item, episodeCount, nextEpisode }: {
+export default TransportRow;
+
+const NowPlayingInfo = memo(function NowPlayingInfo({ item, episodeCount, nextEpisode }: {
   item: LibraryItem | null;
   episodeCount: number | null;
   nextEpisode: LibraryItem | null;
@@ -101,7 +120,7 @@ function NowPlayingInfo({ item, episodeCount, nextEpisode }: {
       {title}{item.parsed_year ? ` (${item.parsed_year})` : ""}
     </span>
   );
-}
+});
 
 function PrevIcon() {
   return (

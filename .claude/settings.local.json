@@ -72,7 +72,8 @@
       "Bash(CARGO_TARGET_DIR=\"D:/cassette-build\" npm run tauri build)",
       "Bash(Remove-Item -Force \"C:\\\\Users\\\\dcava\\\\Desktop\\\\Cassette\\\\.claude\\\\worktrees\\\\vigorous-gauss-2b6fcd\\\\src\\\\components\\\\library\\\\DownloadsView.tsx\" -ErrorAction SilentlyContinue)",
       "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\dcava\\\\Desktop\\\\Cassette\\\\.claude\\\\worktrees\\\\vigorous-gauss-2b6fcd\\\\src-tauri\\\\src\\\\torrents\" -ErrorAction SilentlyContinue)",
-      "Bash(Write-Host \"Deleted\")"
+      "Bash(Write-Host \"Deleted\")",
+      "Bash(export CARGO_TARGET_DIR=\"D:/cassette-build\")"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { togglePause, seekRelative, seek, playFile, getTrackList, updateProgress, getSeriesTrackPref, setSeriesTrackPref, initScrubThumbs, getNextEpisode, getPrevEpisode, getSeasonEpisodeCount, applyVisualProfile, getGlobalProfile, getSeriesProfile, setSeriesProfile, setGlobalProfile, volumeUp, volumeDown, toggleMute, speedUp, speedDown, frameStep, frameBackStep, forceVideoResize, traktFinishWatching } from "../lib/tauri";
@@ -8,7 +8,9 @@ import ProfileChip from "../components/player/ProfileChip";
 import AudioChip from "../components/player/AudioChip";
 import SkipOverlay from "../components/player/SkipOverlay";
 import Scrubber from "../components/player/Scrubber";
+import type { ScrubberHandle } from "../components/player/Scrubber";
 import TransportRow from "../components/player/TransportRow";
+import type { TransportRowHandle } from "../components/player/TransportRow";
 import WindowControls from "../components/WindowControls";
 
 interface PlaybackState {
@@ -26,21 +28,38 @@ interface Props {
 const appWindow = getCurrentWindow();
 
 export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
-  const [state, setState] = useState<PlaybackState>({
-    paused: true,
-    position_seconds: 0,
-    duration_seconds: 0,
-  });
+  // Only paused lives in React state — position/duration go straight to DOM
+  // via imperative handles. This eliminates the 4 Hz re-render cascade that
+  // was causing UI jank during playback.
+  const [paused, setPaused] = useState(true);
+  const pausedRef = useRef(true);
+
+  // Position/duration refs — written by the event listener, read by effects
+  // and the Scrubber/TransportRow imperative handles.
+  const positionRef = useRef(0);
+  const durationRef = useRef(0);
+
+  // Imperative handles for direct DOM updates on scrubber + timecode
+  const scrubberRef = useRef<ScrubberHandle | null>(null);
+  const transportRef = useRef<TransportRowHandle | null>(null);
+
+  // Lightweight flag: duration > 0 for the first time (triggers track load)
+  const [durationKnown, setDurationKnown] = useState(false);
+
   const [videoReady, setVideoReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tracks, setTracks] = useState<TrackInfo[]>([]);
-  const [profile, setProfile] = useState<VisualProfile>("film");
+  const [profile, setProfile] = useState<VisualProfile>("low-power");
   const [nextEpisode, setNextEpisode] = useState<LibraryItem | null>(null);
   const [prevEpisode, setPrevEpisode] = useState<LibraryItem | null>(null);
   const [episodeCount, setEpisodeCount] = useState<number | null>(null);
   const isFullscreenRef = useRef(false);
   const wasMaximizedRef = useRef(false);
   const { visible: overlayVisible, show: showOverlay } = useAutoHide(isFullscreen, currentItem.id);
+
+  // Keep currentItem accessible inside the event listener's closure
+  const currentItemRef = useRef(currentItem);
+  useEffect(() => { currentItemRef.current = currentItem; }, [currentItem]);
 
   // Keep ref in sync so keyboard handler always has fresh value
   useEffect(() => {
@@ -61,89 +80,105 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     }
   }, [currentItem.id]);
 
+  // Central playback:state handler — only React state update is for paused.
+  // Everything else goes to refs and then directly to DOM.
   useEffect(() => {
     const unlisten = listen<PlaybackState>("playback:state", (ev) => {
-      setState(ev.payload);
+      const { paused: p, position_seconds: pos, duration_seconds: dur } = ev.payload;
+
+      // Update refs (no re-render)
+      positionRef.current = pos;
+      durationRef.current = dur;
+
+      // Push directly to DOM — zero React overhead
+      scrubberRef.current?.update(pos, dur);
+      transportRef.current?.update(pos, dur);
+
+      // Only trigger React render when paused state actually changes
+      if (p !== pausedRef.current) {
+        pausedRef.current = p;
+        setPaused(p);
+      }
+
+      // Signal once that duration is known (triggers track loading)
+      if (dur > 0 && pos >= 0) {
+        setDurationKnown((prev) => prev || true);
+      }
+
+      // Trakt near-end scrobble (fire once per file, outside React effect)
+      if (!p && dur > 180 && pos >= dur - 120) {
+        const item = currentItemRef.current;
+        if (!scrobbledRef.current) {
+          scrobbledRef.current = true;
+          traktFinishWatching(item.id, pos, dur).catch(() => {});
+        }
+      }
     });
     return () => { unlisten.then((f) => f()); };
   }, []);
 
-  // Always-current position/duration for cleanup captures
-  const positionRef = useRef(0);
-  const durationRef = useRef(0);
+  // Reset per-file state when item changes
   useEffect(() => {
-    positionRef.current = state.position_seconds;
-    durationRef.current = state.duration_seconds;
-  }, [state.position_seconds, state.duration_seconds]);
+    setDurationKnown(false);
+    tracksLoadedRef.current = false;
+    scrobbledRef.current = false;
+    positionRef.current = 0;
+    durationRef.current = 0;
+    setPaused(true);
+    pausedRef.current = true;
+  }, [currentItem.id]);
 
   // Save progress every 5 seconds while playing
   useEffect(() => {
-    if (state.paused || state.position_seconds < 5) return;
+    if (paused) return;
     const id = setInterval(() => {
+      const pos = positionRef.current;
       const dur = durationRef.current > 0 ? durationRef.current : undefined;
-      updateProgress(currentItem.id, positionRef.current, dur);
+      if (pos > 5) updateProgress(currentItem.id, pos, dur);
     }, 5000);
     return () => clearInterval(id);
-  }, [state.paused, currentItem.id]);
+  }, [paused, currentItem.id]);
 
   // Save progress on unmount
   useEffect(() => {
     return () => {
-      if (positionRef.current > 5) {
-        const dur = durationRef.current > 0 ? durationRef.current : undefined;
-        updateProgress(currentItem.id, positionRef.current, dur);
-      }
+      const pos = positionRef.current;
+      const dur = durationRef.current > 0 ? durationRef.current : undefined;
+      if (pos > 5) updateProgress(currentItem.id, pos, dur);
     };
   }, [currentItem.id]);
 
-  // Scrobble to Trakt when within 2 minutes of the end (fire once per file)
+  // Scrobble ref — reset in the item-change effect above
   const scrobbledRef = useRef(false);
-  useEffect(() => {
-    scrobbledRef.current = false;
-  }, [currentItem.id]);
-  useEffect(() => {
-    const { position_seconds: pos, duration_seconds: dur, paused } = state;
-    if (paused || dur <= 0 || scrobbledRef.current) return;
-    if (pos >= dur - 120 && dur > 180) {
-      scrobbledRef.current = true;
-      traktFinishWatching(currentItem.id, pos, dur).catch(() => {});
-    }
-  }, [state.position_seconds, currentItem.id]);
 
   // Black cover stays opaque until the video is GUARANTEED to be rendering.
-  // Bulletproof: fixed 900ms timeout per item change. mpv has always started
-  // producing frames by that point. No reliance on duration-going-to-zero
-  // heuristics that can fail when state events stall or arrive out of order.
-  // Architecture note: WebView2 punches a transparent hole in .video-area so
-  // the mpv child HWND below shows through. While the cover is opaque, that
-  // hole is masked. The HWND itself uses BLACK_BRUSH background so even if
-  // mpv hasn't drawn yet, you see solid black, never see-through to desktop.
+  // Fixed 900ms timeout per item change. mpv has always started producing
+  // frames by that point. No reliance on duration heuristics.
   useEffect(() => {
     setVideoReady(false);
     const timer = setTimeout(() => setVideoReady(true), 900);
     return () => clearTimeout(timer);
   }, [currentItem.id]);
 
-  // Load track list + kick off thumb pre-generation once file is ready
+  // Load track list + kick off thumb pre-generation once file is ready.
+  // durationKnown flips at most once per file (guarded by tracksLoadedRef).
   const tracksLoadedRef = useRef(false);
   useEffect(() => {
-    if (state.duration_seconds > 0 && !tracksLoadedRef.current) {
-      tracksLoadedRef.current = true;
-      initScrubThumbs(currentItem.id, currentItem.path);
-      getTrackList().then((list) => {
-        setTracks(list);
-        if (currentItem.series_id != null) {
-          applyTrackPref(currentItem.series_id, list);
-        }
-      });
-    }
-  }, [state.duration_seconds]);
+    if (!durationKnown || tracksLoadedRef.current) return;
+    tracksLoadedRef.current = true;
+    initScrubThumbs(currentItem.id, currentItem.path);
+    getTrackList().then((list) => {
+      setTracks(list);
+      if (currentItem.series_id != null) {
+        applyTrackPref(currentItem.series_id, list);
+      }
+    });
+  }, [durationKnown]);
 
   // Apply the right profile when a new file loads
   useEffect(() => {
-    tracksLoadedRef.current = false;
     async function loadProfile() {
-      let profileToUse = "film";
+      let profileToUse = "low-power";
       if (currentItem.series_id != null) {
         const seriesProfile = await getSeriesProfile(currentItem.series_id);
         if (seriesProfile) {
@@ -220,9 +255,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
   }
 
   // Sync fullscreen state when window is resized / OS changes it. Only update
-  // React state when the fullscreen value actually flips — otherwise every
-  // resize tick during a drag triggers a full PlayerView re-render and the
-  // chrome visibly trails the window edge.
+  // React state when the fullscreen value actually flips.
   useEffect(() => {
     let unlistenFn: (() => void) | null = null;
     appWindow.onResized(async () => {
@@ -260,7 +293,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     showOverlay();
   }
 
-  // Keyboard shortcuts — use ref so handler never captures stale isFullscreen
+  // Keyboard shortcuts
   const handleKey = useCallback((e: KeyboardEvent) => {
     switch (e.code) {
       case "Space":
@@ -333,6 +366,11 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
+  // Always show overlay when paused
+  useEffect(() => {
+    if (paused) showOverlay();
+  }, [paused]);
+
   // Drag-and-drop a new file onto the player
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
@@ -348,11 +386,6 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
     togglePause();
     showOverlay();
   }
-
-  // Always show overlay when paused
-  useEffect(() => {
-    if (state.paused) showOverlay();
-  }, [state.paused]);
 
   const playerClass = [
     "player-view",
@@ -391,7 +424,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
           />
         </div>
 
-        <SkipOverlay paused={state.paused} visible={overlayVisible} />
+        <SkipOverlay paused={paused} visible={overlayVisible} />
 
         {/* Fullscreen toggle — appears with the overlay */}
         <button
@@ -419,16 +452,15 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
       {/* Transport section */}
       <div className="transport-section" data-tauri-no-drag>
         <Scrubber
-          position={state.position_seconds}
-          duration={state.duration_seconds}
+          ref={scrubberRef}
+          durationRef={durationRef}
           onSeek={seek}
           fileId={currentItem.id}
           filePath={currentItem.path}
         />
         <TransportRow
-          paused={state.paused}
-          position={state.position_seconds}
-          duration={state.duration_seconds}
+          ref={transportRef}
+          paused={paused}
           currentItem={currentItem}
           nextEpisode={nextEpisode}
           prevEpisode={prevEpisode}
@@ -441,7 +473,7 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
   );
 }
 
-function EmberMark() {
+const EmberMark = memo(function EmberMark() {
   return (
     <svg
       width="20"
@@ -454,7 +486,7 @@ function EmberMark() {
       <path d="M7.25 6.15 L14.4 10 L7.25 13.85 Z" fill="#C9501A" />
     </svg>
   );
-}
+});
 
 function FullscreenIcon() {
   return (

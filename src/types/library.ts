@@ -26,6 +26,7 @@ export interface LibraryItem {
   watch_status: 'unwatched' | 'watching' | 'watched';
   watched_at: number | null;
   notes: string | null;
+  file_missing: boolean;
 }
 
 export interface CollectionStats {

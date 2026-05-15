@@ -332,8 +332,8 @@ function CollectionView({ onPlay, onEdit }: { onPlay: (item: LibraryItem) => voi
               return (
                 <div
                   key={item.id}
-                  className="poster-card"
-                  onClick={() => onPlay(item)}
+                  className={`poster-card${item.file_missing ? " file-missing" : ""}`}
+                  onClick={() => !item.file_missing && onPlay(item)}
                   onContextMenu={(e) => { e.preventDefault(); onEdit(group); }}
                 >
                   <div className="poster-image">
@@ -351,6 +351,9 @@ function CollectionView({ onPlay, onEdit }: { onPlay: (item: LibraryItem) => voi
                         </div>
                       )}
                     </div>
+                    {item.file_missing && (
+                      <div className="missing-badge">drive offline</div>
+                    )}
                   </div>
                 </div>
               );
@@ -371,7 +374,7 @@ function CollectionView({ onPlay, onEdit }: { onPlay: (item: LibraryItem) => voi
                 ? `${seriesName} · S${item.parsed_season} E${item.parsed_episode}`
                 : seriesName;
               return (
-                <div key={item.id} className="fav-episode-row" onClick={() => onPlay(item)}>
+                <div key={item.id} className={`fav-episode-row${item.file_missing ? " file-missing" : ""}`} onClick={() => !item.file_missing && onPlay(item)}>
                   {posterSrc ? (
                     <img src={posterSrc} alt={seriesName} className="fav-ep-thumb" />
                   ) : (
@@ -385,6 +388,9 @@ function CollectionView({ onPlay, onEdit }: { onPlay: (item: LibraryItem) => voi
                   </div>
                   {item.user_rating != null && (
                     <div className="fav-ep-rating">{"★"} {item.user_rating}</div>
+                  )}
+                  {item.file_missing && (
+                    <div className="fav-ep-missing">drive offline</div>
                   )}
                 </div>
               );

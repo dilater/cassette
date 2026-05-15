@@ -59,11 +59,14 @@ pub fn scan_folder(conn: &Connection, folder_path: &str) {
 }
 
 pub fn rescan_all(conn: &Connection) {
-    // Remove DB entries whose files no longer exist on disk
+    // Soft-delete: flag files that no longer exist on disk rather than removing
+    // the row. This preserves favourites, ratings, notes, and watch status when
+    // an external drive is disconnected. The flag clears automatically via
+    // upsert_file when the file reappears.
     if let Ok(paths) = db::all_file_paths(conn) {
         for (id, path) in paths {
             if !Path::new(&path).exists() {
-                db::delete_file(conn, id).ok();
+                db::mark_file_missing(conn, id).ok();
             }
         }
     }

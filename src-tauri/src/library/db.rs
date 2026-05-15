@@ -97,6 +97,12 @@ fn create_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "ALTER TABLE series ADD COLUMN video_profile TEXT;"
     ).ok();
+    // Soft-delete: files whose path no longer exists on disk are flagged rather
+    // than removed, so user data (favourites, ratings, notes) is preserved when
+    // an external drive is disconnected or a file is temporarily moved.
+    conn.execute_batch(
+        "ALTER TABLE files ADD COLUMN file_missing INTEGER NOT NULL DEFAULT 0;"
+    ).ok();
     // Phase 12: torrent tracking table
     conn.execute_batch("
         CREATE TABLE IF NOT EXISTS torrents (
@@ -175,7 +181,8 @@ pub fn upsert_file(conn: &Connection, f: &FileRow) -> Result<()> {
             parsed_episode = CASE WHEN metadata_locked THEN parsed_episode ELSE excluded.parsed_episode END,
             series_id      = CASE WHEN metadata_locked THEN series_id ELSE excluded.series_id END,
             resolution     = excluded.resolution,
-            needs_review   = CASE WHEN metadata_locked THEN needs_review ELSE excluded.needs_review END",
+            needs_review   = CASE WHEN metadata_locked THEN needs_review ELSE excluded.needs_review END,
+            file_missing   = 0",
         params![
             f.path, f.filename, f.parsed_title, f.parsed_year,
             f.parsed_season, f.parsed_episode, f.series_id,
@@ -197,10 +204,11 @@ pub fn library_list(conn: &Connection, kind: &str) -> Result<Vec<LibraryItem>> {
                 f.resolution, f.last_played_at, f.resume_position_seconds,
                 f.needs_review, s.title as series_title, f.duration_seconds,
                 f.poster_path, f.metadata_locked,
-                f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes
+                f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes,
+                f.file_missing
          FROM files f
          LEFT JOIN series s ON f.series_id = s.id
-         WHERE 1=1{kind_filter}
+         WHERE COALESCE(f.file_missing, 0) = 0{kind_filter}
          ORDER BY COALESCE(s.title, f.parsed_title, f.filename),
                   f.parsed_season, f.parsed_episode"
     );
@@ -215,8 +223,12 @@ pub fn all_file_paths(conn: &Connection) -> Result<Vec<(i64, String)>> {
     rows.collect()
 }
 
-pub fn delete_file(conn: &Connection, id: i64) -> Result<()> {
-    conn.execute("DELETE FROM files WHERE id = ?1", params![id])?;
+/// Soft-delete: mark the file as missing on disk rather than removing the row.
+/// All user data (favourites, ratings, notes, watch status) is preserved.
+/// The row is cleared back to file_missing=0 automatically by upsert_file
+/// when the file reappears (e.g. external drive reconnected).
+pub fn mark_file_missing(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute("UPDATE files SET file_missing = 1 WHERE id = ?1", params![id])?;
     Ok(())
 }
 
@@ -433,7 +445,8 @@ pub fn get_favourite_films(conn: &Connection) -> Result<Vec<LibraryItem>> {
                       f.resolution, f.last_played_at, f.resume_position_seconds,
                       f.needs_review, s.title as series_title, f.duration_seconds,
                       f.poster_path, f.metadata_locked,
-                      f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes
+                      f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes,
+                      f.file_missing
                FROM files f
                LEFT JOIN series s ON f.series_id = s.id
                WHERE f.is_favourite = 1 AND f.parsed_season IS NULL
@@ -449,7 +462,8 @@ pub fn get_favourite_episodes(conn: &Connection) -> Result<Vec<LibraryItem>> {
                       f.resolution, f.last_played_at, f.resume_position_seconds,
                       f.needs_review, s.title as series_title, f.duration_seconds,
                       f.poster_path, f.metadata_locked,
-                      f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes
+                      f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes,
+                      f.file_missing
                FROM files f
                LEFT JOIN series s ON f.series_id = s.id
                WHERE f.is_favourite = 1 AND f.parsed_season IS NOT NULL
@@ -486,7 +500,8 @@ const ITEM_SELECT: &str = "SELECT f.id, f.path, f.filename, f.parsed_title, f.pa
        f.resolution, f.last_played_at, f.resume_position_seconds,
        f.needs_review, s.title as series_title, f.duration_seconds,
        f.poster_path, f.metadata_locked,
-       f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes
+       f.is_favourite, f.user_rating, f.watch_status, f.watched_at, f.notes,
+       f.file_missing
 FROM files f LEFT JOIN series s ON f.series_id = s.id";
 
 pub fn get_next_episode(conn: &Connection, file_id: i64) -> Result<Option<LibraryItem>> {
@@ -679,6 +694,7 @@ pub struct LibraryItem {
     pub watch_status: String,
     pub watched_at: Option<i64>,
     pub notes: Option<String>,
+    pub file_missing: bool,
 }
 
 fn map_library_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<LibraryItem> {
@@ -704,5 +720,6 @@ fn map_library_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<LibraryItem> {
         watch_status: row.get::<_, Option<String>>(18)?.unwrap_or_else(|| "unwatched".to_string()),
         watched_at: row.get(19).ok().flatten(),
         notes: row.get(20).ok().flatten(),
+        file_missing: row.get::<_, i64>(21).unwrap_or(0) != 0,
     })
 }
