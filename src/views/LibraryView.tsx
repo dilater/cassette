@@ -94,6 +94,9 @@ export default function LibraryView({ onPlay }: Props) {
   const [editingGroup, setEditingGroup] = useState<FolderGroup | null>(null);
   const [scanning, setScanning] = useState(false);
   const [needsReview, setNeedsReview] = useState<LibraryItem[]>([]);
+  // True until the first data fetch resolves. Prevents the empty-state from
+  // flashing before we know whether folders actually exist.
+  const [loading, setLoading] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
 
   async function loadData() {
@@ -112,6 +115,7 @@ export default function LibraryView({ onPlay }: Props) {
     await rescan();
     await loadData();
     setScanning(false);
+    setLoading(false);
     // Kick off metadata fetch silently — errors mean no API key configured, which is fine
     fetchMetadataAll().catch(() => {});
     // Scan film durations via ffprobe for any films missing duration_seconds
@@ -247,6 +251,8 @@ export default function LibraryView({ onPlay }: Props) {
         <div className="library-body">
           <CollectionView onPlay={onPlay} onEdit={setEditingGroup} />
         </div>
+      ) : loading ? (
+        <div style={{ flex: 1, background: "var(--lacquer-deep)" }} />
       ) : folders.length === 0 ? (
         <EmptyState onFolderAdded={loadData} />
       ) : (
