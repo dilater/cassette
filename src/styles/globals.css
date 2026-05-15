@@ -698,6 +698,7 @@ input {
 
 .player-view .title-bar {
   background: linear-gradient(to bottom, rgba(10, 9, 8, 0.90) 0%, rgba(10, 9, 8, 0.60) 65%, transparent 100%);
+  border-bottom: none;
   position: relative;
   z-index: 10;
   /* No transitions on chrome — must move as a single rigid object with the
@@ -1159,26 +1160,23 @@ input {
 /* ── fullscreen button ───────────────────────────────────────────────────────── */
 
 .fullscreen-btn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(245, 245, 243, 0.5);
-  background: var(--bg-chip);
+  color: rgba(245, 245, 243, 0.45);
+  background: transparent;
   cursor: pointer;
-  transition: color var(--motion-standard), background var(--motion-standard), opacity var(--motion-standard);
-  z-index: 20;
-  pointer-events: none;
-  opacity: 0;
+  transition: color var(--motion-standard), background var(--motion-standard);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .fullscreen-btn:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--light-primary);
   background: var(--bg-hover);
 }
 
@@ -1322,6 +1320,16 @@ input {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+}
+
+/* Bottom-right cluster: upscaling pill · audio/subtitle pill · fullscreen btn */
+.transport-chips-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-left: 8px;
+  border-left: 0.5px solid var(--border-subtle);
 }
 
 .transport-controls {

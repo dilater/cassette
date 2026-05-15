@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, memo } from "react";
+import type { ReactNode } from "react";
 import { togglePause } from "../../lib/tauri";
 import { formatTime } from "../../lib/format";
 import type { LibraryItem } from "../../types/library";
@@ -15,13 +16,14 @@ interface Props {
   episodeCount: number | null;
   onNext: () => void;
   onPrev: () => void;
+  rightCluster?: ReactNode;
 }
 
 // TransportRow never re-renders for position/duration changes. The timecode
 // span is updated imperatively via the forwardRef handle. Only paused + episode
 // info cause re-renders, which are rare (not 4 Hz).
 const TransportRow = forwardRef<TransportRowHandle, Props>(function TransportRow(
-  { paused, currentItem, nextEpisode, prevEpisode, episodeCount, onNext, onPrev },
+  { paused, currentItem, nextEpisode, prevEpisode, episodeCount, onNext, onPrev, rightCluster },
   ref,
 ) {
   const timecodeRef = useRef<HTMLSpanElement>(null);
@@ -78,6 +80,11 @@ const TransportRow = forwardRef<TransportRowHandle, Props>(function TransportRow
           </button>
         </div>
         <span ref={timecodeRef} className="transport-timecode">00:00 / 00:00</span>
+        {rightCluster && (
+          <div className="transport-chips-cluster">
+            {rightCluster}
+          </div>
+        )}
       </div>
     </div>
   );

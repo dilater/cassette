@@ -416,39 +416,8 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
       {/* Video frame — transparent so mpv child HWND shows through */}
       <div className="video-area" onClick={handleVideoAreaClick}>
         <div className={`video-loading-cover${videoReady ? " is-ready" : ""}`} />
-        <div className="video-chips-top">
-          <ProfileChip
-            profile={profile}
-            resolution={currentItem.resolution}
-            onProfileChange={handleProfileChange}
-            seriesId={currentItem.series_id}
-            onSaveForSeries={handleSaveSeriesProfile}
-          />
-        </div>
 
         <SkipOverlay paused={paused} visible={overlayVisible} />
-
-        {/* Fullscreen toggle — appears with the overlay */}
-        <button
-          className="fullscreen-btn"
-          style={{
-            opacity: overlayVisible ? 1 : 0,
-            pointerEvents: overlayVisible ? "auto" : "none",
-          }}
-          data-tauri-no-drag
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isFullscreen) exitFullscreen();
-            else enterFullscreen();
-          }}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
-        </button>
-
-        <div className="video-chips-bottom">
-          <AudioChip tracks={tracks} onTrackChange={refreshTracks} onAudioSelect={handleAudioTrackChange} />
-        </div>
       </div>
 
       {/* Transport section */}
@@ -469,6 +438,30 @@ export default function PlayerView({ currentItem, onBack, onPlayItem }: Props) {
           episodeCount={episodeCount}
           onNext={handleNextEpisode}
           onPrev={handlePrevEpisode}
+          rightCluster={
+            <>
+              <ProfileChip
+                profile={profile}
+                resolution={currentItem.resolution}
+                onProfileChange={handleProfileChange}
+                seriesId={currentItem.series_id}
+                onSaveForSeries={handleSaveSeriesProfile}
+              />
+              <AudioChip tracks={tracks} onTrackChange={refreshTracks} onAudioSelect={handleAudioTrackChange} />
+              <button
+                className="fullscreen-btn"
+                data-tauri-no-drag
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isFullscreen) exitFullscreen();
+                  else enterFullscreen();
+                }}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+              </button>
+            </>
+          }
         />
       </div>
     </div>
